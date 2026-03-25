@@ -241,8 +241,18 @@ def map_fmp_to_dcf_format(fmp_data: Dict) -> Dict:
     balance_sheets = fmp_data['balance_sheets']
     profile = fmp_data['profile']
     
-    # Extract years from income statements
-    years = [int(item['calendarYear']) for item in income_statements]
+    # Extract years from income statements - handle different field names
+    years = []
+    for item in income_statements:
+        # Try calendarYear first, fall back to date field
+        if 'calendarYear' in item:
+            years.append(int(item['calendarYear']))
+        elif 'date' in item:
+            # Extract year from date string (format: "2024-09-28" or similar)
+            year_str = item['date'].split('-')[0]
+            years.append(int(year_str))
+        elif 'fiscalYear' in item:
+            years.append(int(item['fiscalYear']))
     
     # Helper function to extract values
     def get_values(data_list: List[Dict], field: str) -> List[Optional[float]]:
