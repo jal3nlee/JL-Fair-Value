@@ -360,7 +360,6 @@ def main():
             max_value=0.40,
             value=float(ratios['revenue_cagr']) if ratios['revenue_cagr'] else 0.10,
             step=0.005,
-            format="%.1f%%",
             help="Initial revenue growth rate"
         )
         
@@ -370,7 +369,6 @@ def main():
             max_value=1.0,
             value=float(ratios['ebit_margin']) if ratios['ebit_margin'] else 0.40,
             step=0.005,
-            format="%.1f%%",
             help="Starting EBIT margin"
         )
         
@@ -380,7 +378,6 @@ def main():
             max_value=1.0,
             value=float(ratios['ebit_margin']) if ratios['ebit_margin'] else 0.40,
             step=0.005,
-            format="%.1f%%",
             help="Long-term EBIT margin"
         )
         
@@ -394,7 +391,6 @@ def main():
             max_value=0.40,
             value=default_capex,
             step=0.005,
-            format="%.1f%%",
             help="Initial CAPEX as % of revenue"
         )
         
@@ -404,7 +400,6 @@ def main():
             max_value=0.40,
             value=max(0.10, default_capex - 0.03),
             step=0.005,
-            format="%.1f%%",
             help="Terminal CAPEX as % of revenue"
         )
         
@@ -414,7 +409,6 @@ def main():
             max_value=0.40,
             value=float(ratios['da_ratio']) if ratios['da_ratio'] else 0.05,
             step=0.005,
-            format="%.1f%%",
             help="Depreciation & Amortization as % of revenue"
         )
         
@@ -424,7 +418,6 @@ def main():
             max_value=0.50,
             value=float(ratios['wc_ratio']) if ratios['wc_ratio'] else 0.05,
             step=0.005,
-            format="%.1f%%",
             help="Change in NWC as % of revenue change"
         )
         
@@ -436,7 +429,6 @@ def main():
             max_value=0.40,
             value=float(ratios['tax_rate']) if ratios['tax_rate'] else 0.21,
             step=0.005,
-            format="%.1f%%",
             help="Effective tax rate"
         )
         
@@ -446,7 +438,6 @@ def main():
             max_value=0.15,
             value=0.085,
             step=0.005,
-            format="%.1f%%",
             help="Weighted Average Cost of Capital"
         )
         
@@ -458,7 +449,6 @@ def main():
             max_value=0.04,
             value=0.025,
             step=0.005,
-            format="%.1f%%",
             help="Perpetual growth rate"
         )
         
