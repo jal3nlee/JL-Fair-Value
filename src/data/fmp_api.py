@@ -304,19 +304,24 @@ def map_fmp_to_dcf_format(fmp_data: Dict) -> Dict:
         else:
             nwc.append(None)
     
-    # Shares outstanding (diluted)
+    # Shares outstanding (diluted) - try multiple sources in priority order
     shares = profile.get('sharesOutstanding')
-    if shares is None:
+    
+    if not shares:
         shares = profile.get('numberOfShares')
-    if shares is None:
-        # If still None, try to get from balance sheet or income statement
-        if balance_sheets and 'sharesOutstanding' in balance_sheets[0]:
-            shares = balance_sheets[0].get('sharesOutstanding')
-        elif income_statements and 'weightedAverageShsOutDil' in income_statements[0]:
-            shares = income_statements[0].get('weightedAverageShsOutDil')
+    
+    if not shares and income_statements:
+        # Try income statement first (most reliable for diluted shares)
+        shares = income_statements[0].get('weightedAverageShsOutDil')
+        if not shares:
+            shares = income_statements[0].get('weightedAverageShsOut')
+    
+    if not shares and balance_sheets:
+        # Try balance sheet as last resort
+        shares = balance_sheets[0].get('sharesOutstanding')
     
     # Convert to float, default to 0 if still None
-    if shares is not None:
+    if shares is not None and shares != 0:
         shares = float(shares)
     else:
         shares = 0.0
