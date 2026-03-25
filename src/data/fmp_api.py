@@ -15,6 +15,7 @@ class FMPAPIError(Exception):
 def fetch_company_profile(ticker: str, api_key: str) -> Optional[Dict]:
     """
     Fetch company profile including current price, market cap, shares
+    Uses FMP /stable/ API endpoints (post-August 2025)
     
     Args:
         ticker: Stock ticker symbol (e.g., 'AAPL')
@@ -23,8 +24,9 @@ def fetch_company_profile(ticker: str, api_key: str) -> Optional[Dict]:
     Returns:
         Dictionary with profile data or None if error
     """
-    url = f"https://financialmodelingprep.com/api/v3/profile/{ticker}"
-    params = {"apikey": api_key}
+    # New stable endpoint structure
+    url = f"https://financialmodelingprep.com/stable/profile"
+    params = {"symbol": ticker, "apikey": api_key}
     
     try:
         response = requests.get(url, params=params, timeout=10)
@@ -32,9 +34,19 @@ def fetch_company_profile(ticker: str, api_key: str) -> Optional[Dict]:
         data = response.json()
         
         if not data or len(data) == 0:
-            raise FMPAPIError(f"No profile data found for ticker '{ticker}'")
+            raise FMPAPIError(f"No data found for ticker '{ticker}'")
         
-        return data[0]
+        profile = data[0]
+        
+        # Return in consistent format
+        return {
+            'symbol': profile.get('symbol'),
+            'price': profile.get('price'),
+            'companyName': profile.get('companyName'),
+            'marketCap': profile.get('marketCap'),
+            'sharesOutstanding': profile.get('sharesOutstanding'),
+            'exchange': profile.get('exchange')
+        }
     
     except requests.HTTPError as e:
         if e.response.status_code == 404:
@@ -50,6 +62,7 @@ def fetch_company_profile(ticker: str, api_key: str) -> Optional[Dict]:
 def fetch_income_statement(ticker: str, api_key: str, limit: int = 4) -> List[Dict]:
     """
     Fetch income statement data (revenue, EBIT, taxes)
+    Uses FMP /stable/ API endpoints (post-August 2025)
     
     Args:
         ticker: Stock ticker symbol
@@ -59,8 +72,8 @@ def fetch_income_statement(ticker: str, api_key: str, limit: int = 4) -> List[Di
     Returns:
         List of income statement dictionaries (most recent first)
     """
-    url = f"https://financialmodelingprep.com/api/v3/income-statement/{ticker}"
-    params = {"apikey": api_key, "limit": limit}
+    url = f"https://financialmodelingprep.com/stable/income-statement"
+    params = {"symbol": ticker, "apikey": api_key, "limit": limit}
     
     try:
         response = requests.get(url, params=params, timeout=10)
@@ -81,6 +94,7 @@ def fetch_income_statement(ticker: str, api_key: str, limit: int = 4) -> List[Di
 def fetch_cash_flow_statement(ticker: str, api_key: str, limit: int = 4) -> List[Dict]:
     """
     Fetch cash flow statement (CAPEX, D&A, FCF)
+    Uses FMP /stable/ API endpoints (post-August 2025)
     
     Args:
         ticker: Stock ticker symbol
@@ -90,8 +104,8 @@ def fetch_cash_flow_statement(ticker: str, api_key: str, limit: int = 4) -> List
     Returns:
         List of cash flow dictionaries (most recent first)
     """
-    url = f"https://financialmodelingprep.com/api/v3/cash-flow-statement/{ticker}"
-    params = {"apikey": api_key, "limit": limit}
+    url = f"https://financialmodelingprep.com/stable/cash-flow-statement"
+    params = {"symbol": ticker, "apikey": api_key, "limit": limit}
     
     try:
         response = requests.get(url, params=params, timeout=10)
@@ -112,6 +126,7 @@ def fetch_cash_flow_statement(ticker: str, api_key: str, limit: int = 4) -> List
 def fetch_balance_sheet(ticker: str, api_key: str, limit: int = 4) -> List[Dict]:
     """
     Fetch balance sheet (assets, liabilities, debt, cash)
+    Uses FMP /stable/ API endpoints (post-August 2025)
     
     Args:
         ticker: Stock ticker symbol
@@ -121,8 +136,8 @@ def fetch_balance_sheet(ticker: str, api_key: str, limit: int = 4) -> List[Dict]
     Returns:
         List of balance sheet dictionaries (most recent first)
     """
-    url = f"https://financialmodelingprep.com/api/v3/balance-sheet-statement/{ticker}"
-    params = {"apikey": api_key, "limit": limit}
+    url = f"https://financialmodelingprep.com/stable/balance-sheet-statement"
+    params = {"symbol": ticker, "apikey": api_key, "limit": limit}
     
     try:
         response = requests.get(url, params=params, timeout=10)
@@ -143,6 +158,7 @@ def fetch_balance_sheet(ticker: str, api_key: str, limit: int = 4) -> List[Dict]
 def fetch_key_metrics(ticker: str, api_key: str, limit: int = 4) -> List[Dict]:
     """
     Fetch key metrics (margins, ratios, multiples)
+    Uses FMP /stable/ API endpoints (post-August 2025)
     
     Args:
         ticker: Stock ticker symbol
@@ -152,8 +168,8 @@ def fetch_key_metrics(ticker: str, api_key: str, limit: int = 4) -> List[Dict]:
     Returns:
         List of metrics dictionaries (most recent first)
     """
-    url = f"https://financialmodelingprep.com/api/v3/key-metrics/{ticker}"
-    params = {"apikey": api_key, "limit": limit}
+    url = f"https://financialmodelingprep.com/stable/key-metrics"
+    params = {"symbol": ticker, "apikey": api_key, "limit": limit}
     
     try:
         response = requests.get(url, params=params, timeout=10)
