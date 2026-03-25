@@ -354,103 +354,123 @@ def main():
     with st.sidebar:
         st.subheader("Revenue & Margins")
         
-        revenue_growth = st.slider(
+        revenue_growth_pct = st.slider(
             "Revenue Growth",
-            min_value=-0.10,
-            max_value=0.40,
-            value=float(ratios['revenue_cagr']) if ratios['revenue_cagr'] else 0.10,
-            step=0.005,
+            min_value=-10.0,
+            max_value=40.0,
+            value=float(ratios['revenue_cagr'] * 100) if ratios['revenue_cagr'] else 10.0,
+            step=0.5,
+            format="%.1f%%",
             help="Initial revenue growth rate"
         )
+        revenue_growth = revenue_growth_pct / 100  # Convert back to decimal
         
-        ebit_margin = st.slider(
+        ebit_margin_pct = st.slider(
             "EBIT Margin (Initial)",
             min_value=0.0,
-            max_value=1.0,
-            value=float(ratios['ebit_margin']) if ratios['ebit_margin'] else 0.40,
-            step=0.005,
+            max_value=100.0,
+            value=float(ratios['ebit_margin'] * 100) if ratios['ebit_margin'] else 40.0,
+            step=0.5,
+            format="%.1f%%",
             help="Starting EBIT margin"
         )
+        ebit_margin = ebit_margin_pct / 100
         
-        ebit_margin_terminal = st.slider(
+        ebit_margin_terminal_pct = st.slider(
             "EBIT Margin (Terminal)",
             min_value=0.0,
-            max_value=1.0,
-            value=float(ratios['ebit_margin']) if ratios['ebit_margin'] else 0.40,
-            step=0.005,
+            max_value=100.0,
+            value=float(ratios['ebit_margin'] * 100) if ratios['ebit_margin'] else 40.0,
+            step=0.5,
+            format="%.1f%%",
             help="Long-term EBIT margin"
         )
+        ebit_margin_terminal = ebit_margin_terminal_pct / 100
         
         st.subheader("CAPEX & Working Capital")
         
         default_capex = float(ratios['capex_ratio']) if ratios['capex_ratio'] else 0.15
         
-        capex_initial = st.slider(
+        capex_initial_pct = st.slider(
             "CAPEX Initial %",
             min_value=0.0,
-            max_value=0.40,
-            value=default_capex,
-            step=0.005,
+            max_value=40.0,
+            value=default_capex * 100,
+            step=0.5,
+            format="%.1f%%",
             help="Initial CAPEX as % of revenue"
         )
+        capex_initial = capex_initial_pct / 100
         
-        capex_terminal = st.slider(
+        capex_terminal_pct = st.slider(
             "CAPEX Terminal %",
             min_value=0.0,
-            max_value=0.40,
-            value=max(0.10, default_capex - 0.03),
-            step=0.005,
+            max_value=40.0,
+            value=max(10.0, (default_capex - 0.03) * 100),
+            step=0.5,
+            format="%.1f%%",
             help="Terminal CAPEX as % of revenue"
         )
+        capex_terminal = capex_terminal_pct / 100
         
-        da_ratio = st.slider(
+        da_ratio_pct = st.slider(
             "D&A % Revenue",
-            min_value=0.01,
-            max_value=0.40,
-            value=float(ratios['da_ratio']) if ratios['da_ratio'] else 0.05,
-            step=0.005,
+            min_value=1.0,
+            max_value=40.0,
+            value=float(ratios['da_ratio'] * 100) if ratios['da_ratio'] else 5.0,
+            step=0.5,
+            format="%.1f%%",
             help="Depreciation & Amortization as % of revenue"
         )
+        da_ratio = da_ratio_pct / 100
         
-        wc_ratio = st.slider(
+        wc_ratio_pct = st.slider(
             "Working Capital Ratio",
-            min_value=-0.10,
-            max_value=0.50,
-            value=float(ratios['wc_ratio']) if ratios['wc_ratio'] else 0.05,
-            step=0.005,
+            min_value=-10.0,
+            max_value=50.0,
+            value=float(ratios['wc_ratio'] * 100) if ratios['wc_ratio'] else 5.0,
+            step=0.5,
+            format="%.1f%%",
             help="Change in NWC as % of revenue change"
         )
+        wc_ratio = wc_ratio_pct / 100
         
         st.subheader("Tax & Discount Rate")
         
-        tax_rate = st.slider(
+        tax_rate_pct = st.slider(
             "Tax Rate",
-            min_value=0.01,
-            max_value=0.40,
-            value=float(ratios['tax_rate']) if ratios['tax_rate'] else 0.21,
-            step=0.005,
+            min_value=1.0,
+            max_value=40.0,
+            value=float(ratios['tax_rate'] * 100) if ratios['tax_rate'] else 21.0,
+            step=0.5,
+            format="%.1f%%",
             help="Effective tax rate"
         )
+        tax_rate = tax_rate_pct / 100
         
-        wacc = st.slider(
+        wacc_pct = st.slider(
             "WACC",
-            min_value=0.05,
-            max_value=0.15,
-            value=0.085,
-            step=0.005,
+            min_value=5.0,
+            max_value=15.0,
+            value=8.5,
+            step=0.5,
+            format="%.1f%%",
             help="Weighted Average Cost of Capital"
         )
+        wacc = wacc_pct / 100
         
         st.subheader("Terminal Value")
         
-        terminal_growth = st.slider(
+        terminal_growth_pct = st.slider(
             "Terminal Growth",
             min_value=0.0,
-            max_value=0.04,
-            value=0.025,
-            step=0.005,
+            max_value=4.0,
+            value=2.5,
+            step=0.5,
+            format="%.1f%%",
             help="Perpetual growth rate"
         )
+        terminal_growth = terminal_growth_pct / 100
         
         default_exit = calculate_default_exit_multiple(
             ratios['ebit_margin'],
