@@ -1,6 +1,6 @@
 """
-DCF Valuation Model - Streamlit Web Application
-Professional DCF valuation with dual terminal value methods
+JL Fair Value - DCF Valuation Model
+Build a discounted cash flow model to estimate intrinsic value using multiple valuation methods
 """
 import streamlit as st
 import pandas as pd
@@ -24,7 +24,7 @@ from src.utils.formatters import (
 
 # Page configuration
 st.set_page_config(
-    page_title="DCF Valuation Model",
+    page_title="JL Fair Value",
     page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -105,12 +105,12 @@ def main():
     """Main application logic"""
     
     # Header
-    st.markdown('<div class="main-header">📊 DCF Valuation Model</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-header">Professional discounted cash flow valuation with dual terminal value methods</div>', unsafe_allow_html=True)
+    st.markdown('<div class="main-header">JL Fair Value</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sub-header">Build a discounted cash flow model to estimate intrinsic value using multiple valuation methods</div>', unsafe_allow_html=True)
     
     # Sidebar - File Upload
     with st.sidebar:
-        st.header("📤 Upload 10-K Filing")
+        st.header("Upload 10-K HTML Filing")
         uploaded_file = st.file_uploader(
             "Upload SEC 10-K HTML file",
             type=['html', 'htm'],
@@ -119,15 +119,15 @@ def main():
         
         if uploaded_file is not None:
             file_size = len(uploaded_file.getvalue()) / (1024 * 1024)
-            st.success(f"✅ Uploaded: {uploaded_file.name}")
+            st.success(f"File uploaded: {uploaded_file.name}")
             st.caption(f"File size: {file_size:.1f} MB")
     
     # Main content
     if uploaded_file is None:
-        st.info("👈 Please upload a 10-K HTML file from the sidebar to begin")
+        st.info("Upload a 10-K HTML filing from the sidebar to begin")
         
         # Instructions
-        st.markdown("### 📖 How to use this tool")
+        st.markdown("### How to Use the Model")
         st.markdown("""
         1. **Download a 10-K filing** from [SEC EDGAR](https://www.sec.gov/edgar/searchedgar/companysearch.html)
         2. **Upload the HTML file** using the sidebar
@@ -137,7 +137,7 @@ def main():
         6. **Run reverse DCF** to see market-implied growth rates
         """)
         
-        st.markdown("### ✨ Key Features")
+        st.markdown("### What This Model Does")
         col1, col2 = st.columns(2)
         with col1:
             st.markdown("""
@@ -157,27 +157,27 @@ def main():
         return
     
     # Extract financials (cached)
-    with st.spinner("Parsing 10-K filing... This may take a few seconds..."):
+    with st.spinner("Extracting financial data from 10-K HTML filing. This may take a few seconds."):
         try:
             financials = parse_10k_file(uploaded_file.getvalue())
         except Exception as e:
-            st.error(f"❌ Error parsing file: {str(e)}")
+            st.error(f"Unable to parse 10-K HTML file: {str(e)}")
             return
     
-    st.success("✅ Financial data extracted successfully!")
+    st.success("Financial data extracted successfully")
     
     # Display historical data
-    st.header("📊 Historical Financials")
+    st.header("Historical Financials")
     
     col1, col2 = st.columns([2, 1])
     
     with col1:
-        st.subheader("Historical Data")
+        st.subheader("Reported Financials")
         historical_df = create_historical_summary(financials)
         st.dataframe(historical_df, use_container_width=True, hide_index=True)
     
     with col2:
-        st.subheader("Calculated Ratios")
+        st.subheader("Derived Metrics")
         ratios_df = create_ratios_summary(financials['ratios'])
         st.dataframe(ratios_df, use_container_width=True, hide_index=True)
     
@@ -185,7 +185,7 @@ def main():
     ratios = financials['ratios']
     
     # Sidebar - Assumptions
-    st.sidebar.header("🎛️ Valuation Assumptions")
+    st.sidebar.header("Model Assumptions")
     
     with st.sidebar:
         st.subheader("Revenue & Margins")
@@ -313,7 +313,7 @@ def main():
             help="Exit multiple for terminal value"
         )
         
-        st.subheader("Projection Period")
+        st.subheader("Forecast Period")
         
         projection_years = st.slider(
             "Projection Years",
@@ -342,17 +342,17 @@ def main():
             projection_years
         )
     except Exception as e:
-        st.error(f"❌ Error calculating DCF: {str(e)}")
+        st.error(f"Error running valuation: {str(e)}")
         return
     
     # Main results
-    st.header("💰 Valuation Results")
+    st.header("Valuation Results")
     
     col1, col2, col3 = st.columns(3)
     
     with col1:
         st.metric(
-            "Gordon Growth Method",
+            "Perpetuity Method",
             format_price(result['price_per_share_gordon']),
             help="Terminal value using perpetuity formula"
         )
@@ -374,25 +374,25 @@ def main():
     
     # Tabs for different analyses
     tab1, tab2, tab3, tab4, tab5 = st.tabs([
-        "📈 Projection", 
-        "🎯 Scenarios", 
-        "📊 Sensitivity", 
-        "🔄 Reverse DCF",
-        "📋 Growth Paths"
+        "Projection", 
+        "Scenarios", 
+        "Sensitivity", 
+        "Market Expectations",
+        "Growth Paths"
     ])
     
     with tab1:
-        st.subheader("Cash Flow Projection")
+        st.subheader("Projected Cash Flows")
         projection_df = create_projection_summary(result['projection'])
         st.dataframe(projection_df, use_container_width=True, hide_index=True)
         
         # Terminal value breakdown
-        st.subheader("Terminal Value Calculation")
+        st.subheader("Terminal Value")
         
         col1, col2 = st.columns(2)
         
         with col1:
-            st.markdown("**Gordon Growth Method**")
+            st.markdown("**Perpetuity Method**")
             st.write(f"Sum of PV(FCF): {format_millions(result['sum_pv_fcf'])}")
             st.write(f"Terminal Value: {format_millions(result['terminal_value_gordon'])}")
             st.write(f"PV(Terminal): {format_millions(result['pv_terminal_gordon'])}")
@@ -425,7 +425,7 @@ def main():
                 'Scenario': scenario_name.capitalize(),
                 'Revenue Growth': format_percentage(s['assumptions']['revenue_growth']),
                 'EBIT Margin': format_percentage(s['assumptions']['ebit_margin']),
-                'Gordon Method': format_price(s['price_per_share_gordon']),
+                'Perpetuity Method': format_price(s['price_per_share_gordon']),
                 'Exit Method': format_price(s['price_per_share_exit']),
                 'Blended': format_price(s['price_per_share_avg'])
             })
@@ -475,11 +475,10 @@ def main():
         st.dataframe(exit_growth_display, use_container_width=True)
     
     with tab4:
-        st.subheader("Reverse DCF - Market-Implied Growth")
+        st.subheader("Market Expectations")
         
         st.markdown("""
-        Enter the current market price to solve for the revenue growth rate that 
-        would justify this valuation (holding all other assumptions constant).
+        Enter the current stock price to estimate the growth required to justify today's valuation, holding all other assumptions constant.
         """)
         
         market_price = st.number_input(
@@ -491,7 +490,7 @@ def main():
         )
         
         if st.button("Calculate Implied Growth", type="primary"):
-            with st.spinner("Solving for implied growth rate..."):
+            with st.spinner("Calculating implied growth rate."):
                 reverse_result = calculate_implied_metrics(
                     market_price,
                     financials,
