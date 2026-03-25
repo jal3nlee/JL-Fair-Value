@@ -563,7 +563,8 @@ def main():
             st.write(f"Enterprise Value: {format_millions(result['enterprise_value_gordon'])}")
             st.write(f"- Net Debt: {format_millions(ratios['net_debt'])}")
             st.write(f"= Equity Value: {format_millions(result['equity_value_gordon'])}")
-            st.write(f"÷ Shares: {ratios['shares_diluted'] / 1_000_000:,.0f}M")
+            shares_display = f"{ratios['shares_diluted'] / 1_000_000:,.0f}M" if ratios.get('shares_diluted') else "N/A"
+            st.write(f"÷ Shares: {shares_display}")
             st.markdown(f"**= ${result['price_per_share_gordon']:.2f}/share**")
         
         with col2:
@@ -574,7 +575,8 @@ def main():
             st.write(f"Enterprise Value: {format_millions(result['enterprise_value_exit'])}")
             st.write(f"- Net Debt: {format_millions(ratios['net_debt'])}")
             st.write(f"= Equity Value: {format_millions(result['equity_value_exit'])}")
-            st.write(f"÷ Shares: {ratios['shares_diluted'] / 1_000_000:,.0f}M")
+            shares_display = f"{ratios['shares_diluted'] / 1_000_000:,.0f}M" if ratios.get('shares_diluted') else "N/A"
+            st.write(f"÷ Shares: {shares_display}")
             st.markdown(f"**= ${result['price_per_share_exit']:.2f}/share**")
     
     with tab2:
