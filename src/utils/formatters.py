@@ -44,14 +44,14 @@ def calculate_default_exit_multiple(ebit_margin: Optional[float], revenue_growth
         revenue_growth: Revenue growth rate
         
     Returns:
-        Exit multiple between 12-25x
+        Exit multiple between 12-25x (always float)
     """
     if ebit_margin and revenue_growth:
         margin_premium = (ebit_margin - 0.30) * 20
         growth_premium = (revenue_growth - 0.10) * 30
-        exit_multiple = 15 + margin_premium + growth_premium
-        return max(12, min(25, exit_multiple))
-    return 18
+        exit_multiple = 15.0 + margin_premium + growth_premium
+        return float(max(12.0, min(25.0, exit_multiple)))
+    return 18.0
 
 
 def create_historical_summary(financials: dict) -> pd.DataFrame:
