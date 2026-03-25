@@ -1,764 +1,452 @@
 """
-JL Fair Value - DCF Valuation Model
-Build a discounted cash flow model to estimate intrinsic value using multiple valuation methods
+Financial Modeling Prep (FMP) API Integration
+Fetches live financial data for DCF valuation
 """
-import streamlit as st
+import requests
+from typing import Dict, List, Optional
 import pandas as pd
-import numpy as np
-from typing import Dict
-
-# Import custom modules
-from src.data.sec_parser import extract_financials
-from src.data.fmp_api import fetch_all_company_data, map_fmp_to_dcf_format, FMPAPIError
-from src.valuation.dcf_engine import dcf_model
-from src.valuation.reverse_dcf import calculate_implied_metrics
-from src.valuation.sensitivity import (
-    generate_wacc_terminal_sensitivity,
-    generate_exit_multiple_growth_sensitivity,
-    generate_scenario_analysis
-)
-from src.utils.formatters import (
-    format_millions, format_percentage, format_price, format_multiple,
-    calculate_default_exit_multiple, create_historical_summary,
-    create_projection_summary, create_ratios_summary
-)
-
-# Page configuration
-st.set_page_config(
-    page_title="JL Fair Value",
-    page_icon="📊",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
-
-# Custom CSS for better styling
-st.markdown("""
-<style>
-    .main-header {
-        font-size: 2.5rem;
-        font-weight: 700;
-        color: #1f77b4;
-        margin-bottom: 0.3rem;
-    }
-    .sub-header {
-        font-size: 1.1rem;
-        color: #666;
-        margin-bottom: 1rem;
-    }
-    .cta-strip {
-        background-color: #1f77b4;
-        color: white;
-        padding: 0.8rem 1.5rem;
-        border-radius: 0.5rem;
-        text-align: center;
-        font-size: 1.1rem;
-        font-weight: 600;
-        margin: 1rem 0;
-    }
-    .quick-steps {
-        display: flex;
-        justify-content: space-around;
-        margin: 1.5rem 0 2rem 0;
-        padding: 0;
-    }
-    .quick-steps div {
-        text-align: center;
-        flex: 1;
-        padding: 0 1rem;
-    }
-    .quick-steps-text {
-        font-size: 0.95rem;
-        color: #333;
-        font-weight: 500;
-    }
-    .section-header {
-        margin-top: 1.5rem;
-        margin-bottom: 0.8rem;
-    }
-    .metric-card {
-        background-color: #f0f2f6;
-        padding: 1rem;
-        border-radius: 0.5rem;
-        margin: 0.5rem 0;
-    }
-    .stDataFrame {
-        font-size: 0.9rem;
-    }
-    div[data-testid="stMetricValue"] {
-        font-size: 1.8rem;
-    }
-    .blue-divider {
-        width: 100%;
-        height: 3px;
-        background: linear-gradient(90deg, #1f77b4 0%, #4a9fd8 100%);
-        margin: 2rem 0 1rem 0;
-    }
-    .divider-text {
-        text-align: center;
-        color: #1f77b4;
-        font-weight: 600;
-        font-size: 1rem;
-        margin-bottom: 2rem;
-    }
-    /* Tighter spacing for non-data sections */
-    .element-container {
-        margin-bottom: 0.5rem;
-    }
-    /* Preserve breathing room for data */
-    div[data-testid="stDataFrame"],
-    div[data-testid="stMetric"] {
-        margin-top: 1rem;
-        margin-bottom: 1rem;
-    }
-</style>
-""", unsafe_allow_html=True)
 
 
-@st.cache_data
-def parse_10k_file(file_content: bytes) -> Dict:
-    """Cache the extraction of financial data from 10-K HTML"""
-    html_content = file_content.decode('utf-8', errors='ignore')
-    return extract_financials(html_content)
+class FMPAPIError(Exception):
+    """Custom exception for FMP API errors"""
+    pass
 
 
-@st.cache_data(ttl=3600)  # Cache for 1 hour
-def fetch_api_data(ticker: str, api_key: str) -> Dict:
+def fetch_company_profile(ticker: str, api_key: str) -> Optional[Dict]:
     """
-    Fetch financial data from FMP API (cached for 1 hour)
+    Fetch company profile including current price, market cap, shares
+    Uses FMP /stable/ API endpoints (post-August 2025)
+    
+    Args:
+        ticker: Stock ticker symbol (e.g., 'AAPL')
+        api_key: FMP API key
+        
+    Returns:
+        Dictionary with profile data or None if error
+    """
+    # New stable endpoint structure
+    url = f"https://financialmodelingprep.com/stable/profile"
+    params = {"symbol": ticker, "apikey": api_key}
+    
+    try:
+        response = requests.get(url, params=params, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        
+        if not data or len(data) == 0:
+            raise FMPAPIError(f"No data found for ticker '{ticker}'")
+        
+        profile = data[0]
+        
+        # Return in consistent format
+        return {
+            'symbol': profile.get('symbol'),
+            'price': profile.get('price'),
+            'companyName': profile.get('companyName'),
+            'marketCap': profile.get('marketCap'),
+            'sharesOutstanding': profile.get('sharesOutstanding'),
+            'exchange': profile.get('exchange')
+        }
+    
+    except requests.HTTPError as e:
+        if e.response.status_code == 404:
+            raise FMPAPIError(f"Ticker '{ticker}' not found")
+        elif e.response.status_code == 429:
+            raise FMPAPIError("API rate limit exceeded. Please try again later.")
+        else:
+            raise FMPAPIError(f"API error: {str(e)}")
+    except requests.RequestException as e:
+        raise FMPAPIError(f"Network error: {str(e)}")
+
+
+def fetch_income_statement(ticker: str, api_key: str, limit: int = 4) -> List[Dict]:
+    """
+    Fetch income statement data (revenue, EBIT, taxes)
+    Uses FMP /stable/ API endpoints (post-August 2025)
+    
+    Args:
+        ticker: Stock ticker symbol
+        api_key: FMP API key
+        limit: Number of years to fetch
+        
+    Returns:
+        List of income statement dictionaries (most recent first)
+    """
+    url = f"https://financialmodelingprep.com/stable/income-statement"
+    params = {"symbol": ticker, "apikey": api_key, "limit": limit}
+    
+    try:
+        response = requests.get(url, params=params, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        
+        if not data or len(data) == 0:
+            raise FMPAPIError(f"No income statement data for '{ticker}'")
+        
+        return data
+    
+    except requests.HTTPError as e:
+        raise FMPAPIError(f"Failed to fetch income statement: {str(e)}")
+    except requests.RequestException as e:
+        raise FMPAPIError(f"Network error: {str(e)}")
+
+
+def fetch_cash_flow_statement(ticker: str, api_key: str, limit: int = 4) -> List[Dict]:
+    """
+    Fetch cash flow statement (CAPEX, D&A, FCF)
+    Uses FMP /stable/ API endpoints (post-August 2025)
+    
+    Args:
+        ticker: Stock ticker symbol
+        api_key: FMP API key
+        limit: Number of years to fetch
+        
+    Returns:
+        List of cash flow dictionaries (most recent first)
+    """
+    url = f"https://financialmodelingprep.com/stable/cash-flow-statement"
+    params = {"symbol": ticker, "apikey": api_key, "limit": limit}
+    
+    try:
+        response = requests.get(url, params=params, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        
+        if not data or len(data) == 0:
+            raise FMPAPIError(f"No cash flow data for '{ticker}'")
+        
+        return data
+    
+    except requests.HTTPError as e:
+        raise FMPAPIError(f"Failed to fetch cash flow: {str(e)}")
+    except requests.RequestException as e:
+        raise FMPAPIError(f"Network error: {str(e)}")
+
+
+def fetch_balance_sheet(ticker: str, api_key: str, limit: int = 4) -> List[Dict]:
+    """
+    Fetch balance sheet (assets, liabilities, debt, cash)
+    Uses FMP /stable/ API endpoints (post-August 2025)
+    
+    Args:
+        ticker: Stock ticker symbol
+        api_key: FMP API key
+        limit: Number of years to fetch
+        
+    Returns:
+        List of balance sheet dictionaries (most recent first)
+    """
+    url = f"https://financialmodelingprep.com/stable/balance-sheet-statement"
+    params = {"symbol": ticker, "apikey": api_key, "limit": limit}
+    
+    try:
+        response = requests.get(url, params=params, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        
+        if not data or len(data) == 0:
+            raise FMPAPIError(f"No balance sheet data for '{ticker}'")
+        
+        return data
+    
+    except requests.HTTPError as e:
+        raise FMPAPIError(f"Failed to fetch balance sheet: {str(e)}")
+    except requests.RequestException as e:
+        raise FMPAPIError(f"Network error: {str(e)}")
+
+
+def fetch_key_metrics(ticker: str, api_key: str, limit: int = 4) -> List[Dict]:
+    """
+    Fetch key metrics (margins, ratios, multiples)
+    Uses FMP /stable/ API endpoints (post-August 2025)
+    
+    Args:
+        ticker: Stock ticker symbol
+        api_key: FMP API key
+        limit: Number of years to fetch
+        
+    Returns:
+        List of metrics dictionaries (most recent first)
+    """
+    url = f"https://financialmodelingprep.com/stable/key-metrics"
+    params = {"symbol": ticker, "apikey": api_key, "limit": limit}
+    
+    try:
+        response = requests.get(url, params=params, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        
+        if not data or len(data) == 0:
+            raise FMPAPIError(f"No metrics data for '{ticker}'")
+        
+        return data
+    
+    except requests.HTTPError as e:
+        raise FMPAPIError(f"Failed to fetch metrics: {str(e)}")
+    except requests.RequestException as e:
+        raise FMPAPIError(f"Network error: {str(e)}")
+
+
+def fetch_all_company_data(ticker: str, api_key: str) -> Dict:
+    """
+    Fetch all financial data needed for DCF valuation
     
     Args:
         ticker: Stock ticker symbol
         api_key: FMP API key
         
     Returns:
-        DCF-formatted financial data
+        Dictionary containing all financial data
         
     Raises:
-        FMPAPIError: If API call fails
+        FMPAPIError: If any API call fails
     """
-    raw_data = fetch_all_company_data(ticker, api_key)
-    return map_fmp_to_dcf_format(raw_data)
-
-
-@st.cache_data
-def run_dcf_calculation(
-    financials_dict: Dict,
-    revenue_growth: float,
-    ebit_margin: float,
-    ebit_margin_terminal: float,
-    capex_initial: float,
-    capex_terminal: float,
-    da_ratio: float,
-    tax_rate: float,
-    wc_ratio: float,
-    wacc: float,
-    terminal_growth: float,
-    exit_multiple: float,
-    projection_years: int
-) -> Dict:
-    """Cache DCF calculations to avoid recomputation"""
-    assumptions = {
-        'revenue_growth': revenue_growth,
-        'ebit_margin': ebit_margin,
-        'ebit_margin_terminal': ebit_margin_terminal,
-        'capex_ratio_initial': capex_initial,
-        'capex_ratio_terminal': capex_terminal,
-        'da_ratio': da_ratio,
-        'tax_rate': tax_rate,
-        'wc_ratio': wc_ratio,
-        'wacc': wacc,
-        'terminal_growth': terminal_growth,
-        'exit_multiple': exit_multiple,
-        'projection_years': projection_years
-    }
-    return dcf_model(financials_dict, assumptions, 'base')
-
-
-def main():
-    """Main application logic"""
+    ticker = ticker.upper().strip()
     
-    # Header
-    st.markdown('<div class="main-header">JL Fair Value</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-header">Build your own discounted cash flow model and estimate intrinsic value</div>', unsafe_allow_html=True)
-    
-    # CTA Strip
-    st.markdown('<div class="cta-strip">SEC filings to intrinsic value in minutes</div>', unsafe_allow_html=True)
-    
-    # Quick Steps
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.markdown('<div class="quick-steps-text">Upload a 10-K</div>', unsafe_allow_html=True)
-    with col2:
-        st.markdown('<div class="quick-steps-text">Build your model</div>', unsafe_allow_html=True)
-    with col3:
-        st.markdown('<div class="quick-steps-text">Estimate intrinsic value</div>', unsafe_allow_html=True)
-    
-    # Sidebar - Get Started
-    with st.sidebar:
-        st.header("Get Started")
-        
-        # Get API key from secrets
-        try:
-            api_key = st.secrets["api_keys"]["fmp_api_key"]
-            api_available = True
-        except:
-            api_available = False
-            st.warning("⚠️ API key not configured. Upload 10-K files only.")
-        
-        # Option 1: Ticker Entry (Primary method)
-        if api_available:
-            st.subheader("Enter Stock Ticker")
-            ticker_input = st.text_input(
-                "Ticker Symbol",
-                value="NVDA",
-                max_chars=10,
-                help="Enter a stock ticker (e.g., AAPL, MSFT, GOOGL)"
-            ).upper().strip()
-            
-            fetch_button = st.button("Fetch Live Data", type="primary", use_container_width=True)
-            
-            # Initialize session state for ticker data
-            if 'ticker_data' not in st.session_state:
-                st.session_state.ticker_data = None
-                st.session_state.current_ticker = None
-                st.session_state.company_name = None
-                st.session_state.current_price = None
-            
-            # Fetch data when button clicked
-            if fetch_button and ticker_input:
-                with st.spinner(f"Fetching data for {ticker_input}..."):
-                    try:
-                        # Fetch from API
-                        from src.data.fmp_api import fetch_company_profile
-                        profile = fetch_company_profile(ticker_input, api_key)
-                        financials_data = fetch_api_data(ticker_input, api_key)
-                        
-                        # Store in session state
-                        st.session_state.ticker_data = financials_data
-                        st.session_state.current_ticker = ticker_input
-                        st.session_state.company_name = profile.get('companyName', ticker_input)
-                        st.session_state.current_price = profile.get('price')
-                        st.session_state.data_source = 'API'
-                        
-                        st.success(f"✓ Data loaded for {st.session_state.company_name}")
-                        st.caption(f"Current Price: ${st.session_state.current_price:.2f}")
-                        
-                    except FMPAPIError as e:
-                        st.error(f"API Error: {str(e)}")
-                        st.session_state.ticker_data = None
-                    except Exception as e:
-                        st.error(f"Unexpected error: {str(e)}")
-                        st.session_state.ticker_data = None
-            
-            # Show current loaded ticker
-            if st.session_state.ticker_data is not None:
-                st.info(f"📊 Loaded: {st.session_state.company_name} ({st.session_state.current_ticker})")
-            
-            st.markdown("---")
-        
-        # Option 2: 10-K Upload (Fallback method)
-        st.subheader("Or Upload 10-K HTML Filing")
-        uploaded_file = st.file_uploader(
-            "Upload SEC 10-K HTML file",
-            type=['html', 'htm'],
-            help="Upload the HTML version of a 10-K filing from SEC EDGAR"
-        )
-        
-        if uploaded_file is not None:
-            file_size = len(uploaded_file.getvalue()) / (1024 * 1024)
-            st.success(f"File uploaded: {uploaded_file.name}")
-            st.caption(f"File size: {file_size:.1f} MB")
-    
-    # Main content - check for data from either source
-    has_ticker_data = st.session_state.get('ticker_data') is not None
-    has_file_upload = uploaded_file is not None
-    
-    if not has_ticker_data and not has_file_upload:
-        st.info("Enter a ticker and fetch live data, or upload a 10-K HTML filing to begin")
-        
-        # Instructions - 2 Column Layout
-        col_left, col_right = st.columns(2)
-        
-        with col_left:
-            st.markdown("### How It Works")
-            st.markdown("""
-            1. **Enter a stock ticker** (e.g., AAPL, MSFT) and click "Fetch Live Data"
-            2. **Or upload a 10-K HTML file** from [SEC EDGAR](https://www.sec.gov/edgar/searchedgar/companysearch.html)
-            3. **Review historical financials** and derived metrics
-            4. **Adjust assumptions** using the model inputs
-            5. **Analyze valuation results**, scenarios, and sensitivity tables
-            6. **Run reverse DCF** to estimate market-implied growth
-            """)
-        
-        with col_right:
-            st.markdown("### Capabilities")
-            st.markdown("""
-            - **iXBRL parsing** — Automatically extracts financial data from SEC filings
-            - **Dual terminal value** — Uses both perpetuity growth and exit multiple methods
-            - **Revenue plateau** — Applies a short-term plateau before transitioning to long-term growth
-            - **CAPEX fade** — Gradually adjusts reinvestment from initial to long-term levels
-            - **Scenario analysis** — Compare downside, base, and upside cases
-            - **Sensitivity analysis** — Evaluate valuation across key assumption ranges
-            - **Reverse DCF** — Estimate the growth required to justify the current market price
-            - **EBIT margin glide** — Smoothly transitions margins toward a steady-state level
-            """)
-        
-        return
-    
-    # Extract financials from either source
-    if has_ticker_data:
-        # Use ticker data from API
-        financials = st.session_state.ticker_data
-        data_source_label = f"Live data for {st.session_state.company_name} ({st.session_state.current_ticker})"
-    else:
-        # Extract from uploaded file
-        with st.spinner("Extracting financial data from 10-K HTML filing. This may take a few seconds."):
-            try:
-                financials = parse_10k_file(uploaded_file.getvalue())
-                data_source_label = f"Data from uploaded 10-K file"
-                # Clear ticker data if switching to file upload
-                st.session_state.ticker_data = None
-                st.session_state.current_ticker = None
-                st.session_state.data_source = '10-K'
-            except Exception as e:
-                st.error(f"Unable to parse 10-K HTML file: {str(e)}")
-                return
-    
-    st.success(f"Financial data extracted successfully — {data_source_label}")
-    
-    # Blue divider - transition moment
-    st.markdown('<div class="blue-divider"></div>', unsafe_allow_html=True)
-    st.markdown('<div class="divider-text">Model Initialized — Adjust assumptions below</div>', unsafe_allow_html=True)
-    
-    # Display historical data
-    st.header("Historical Financials")
-    
-    col1, col2 = st.columns([2, 1])
-    
-    with col1:
-        st.subheader("Reported Financials")
-        historical_df = create_historical_summary(financials)
-        st.dataframe(historical_df, use_container_width=True, hide_index=True)
-    
-    with col2:
-        st.subheader("Derived Metrics")
-        ratios_df = create_ratios_summary(financials['ratios'])
-        st.dataframe(ratios_df, use_container_width=True, hide_index=True)
-    
-    # Get ratios for default values
-    ratios = financials['ratios']
-    
-    # Sidebar - Assumptions
-    st.sidebar.header("Model Assumptions")
-    
-    with st.sidebar:
-        st.subheader("Revenue & Margins")
-        
-        revenue_growth = st.slider(
-            "Revenue Growth",
-            min_value=-0.10,
-            max_value=0.40,
-            value=float(ratios['revenue_cagr']) if ratios['revenue_cagr'] else 0.10,
-            step=0.005,
-            format="%.1f%%",
-            help="Initial revenue growth rate"
-        )
-        
-        ebit_margin = st.slider(
-            "EBIT Margin (Initial)",
-            min_value=0.0,
-            max_value=1.0,
-            value=float(ratios['ebit_margin']) if ratios['ebit_margin'] else 0.40,
-            step=0.005,
-            format="%.1f%%",
-            help="Starting EBIT margin"
-        )
-        
-        ebit_margin_terminal = st.slider(
-            "EBIT Margin (Terminal)",
-            min_value=0.0,
-            max_value=1.0,
-            value=float(ratios['ebit_margin']) if ratios['ebit_margin'] else 0.40,
-            step=0.005,
-            format="%.1f%%",
-            help="Long-term EBIT margin"
-        )
-        
-        st.subheader("CAPEX & Working Capital")
-        
-        default_capex = float(ratios['capex_ratio']) if ratios['capex_ratio'] else 0.15
-        
-        capex_initial = st.slider(
-            "CAPEX Initial %",
-            min_value=0.0,
-            max_value=0.40,
-            value=default_capex,
-            step=0.005,
-            format="%.1f%%",
-            help="Initial CAPEX as % of revenue"
-        )
-        
-        capex_terminal = st.slider(
-            "CAPEX Terminal %",
-            min_value=0.0,
-            max_value=0.40,
-            value=max(0.10, default_capex - 0.03),
-            step=0.005,
-            format="%.1f%%",
-            help="Terminal CAPEX as % of revenue"
-        )
-        
-        da_ratio = st.slider(
-            "D&A % Revenue",
-            min_value=0.01,
-            max_value=0.40,
-            value=float(ratios['da_ratio']) if ratios['da_ratio'] else 0.05,
-            step=0.005,
-            format="%.1f%%",
-            help="Depreciation & Amortization as % of revenue"
-        )
-        
-        wc_ratio = st.slider(
-            "Working Capital Ratio",
-            min_value=-0.10,
-            max_value=0.50,
-            value=float(ratios['wc_ratio']) if ratios['wc_ratio'] else 0.05,
-            step=0.005,
-            format="%.1f%%",
-            help="Change in NWC as % of revenue change"
-        )
-        
-        st.subheader("Tax & Discount Rate")
-        
-        tax_rate = st.slider(
-            "Tax Rate",
-            min_value=0.01,
-            max_value=0.40,
-            value=float(ratios['tax_rate']) if ratios['tax_rate'] else 0.21,
-            step=0.005,
-            format="%.1f%%",
-            help="Effective tax rate"
-        )
-        
-        wacc = st.slider(
-            "WACC",
-            min_value=0.05,
-            max_value=0.15,
-            value=0.085,
-            step=0.005,
-            format="%.1f%%",
-            help="Weighted Average Cost of Capital"
-        )
-        
-        st.subheader("Terminal Value")
-        
-        terminal_growth = st.slider(
-            "Terminal Growth",
-            min_value=0.0,
-            max_value=0.04,
-            value=0.025,
-            step=0.005,
-            format="%.1f%%",
-            help="Perpetual growth rate"
-        )
-        
-        default_exit = calculate_default_exit_multiple(
-            ratios['ebit_margin'],
-            ratios['revenue_cagr']
-        )
-        
-        exit_multiple = st.slider(
-            "Exit Multiple (EBIT)",
-            min_value=0.0,
-            max_value=40.0,
-            value=default_exit,
-            step=0.5,
-            format="%.1fx",
-            help="Exit multiple for terminal value"
-        )
-        
-        st.subheader("Forecast Period")
-        
-        projection_years = st.slider(
-            "Projection Years",
-            min_value=5,
-            max_value=10,
-            value=7,
-            step=1,
-            help="Number of years to project"
-        )
-    
-    # Run DCF calculation (cached)
     try:
-        result = run_dcf_calculation(
-            financials,
-            revenue_growth,
-            ebit_margin,
-            ebit_margin_terminal,
-            capex_initial,
-            capex_terminal,
-            da_ratio,
-            tax_rate,
-            wc_ratio,
-            wacc,
-            terminal_growth,
-            exit_multiple,
-            projection_years
-        )
+        # Fetch all data sources
+        profile = fetch_company_profile(ticker, api_key)
+        income_statements = fetch_income_statement(ticker, api_key)
+        cash_flows = fetch_cash_flow_statement(ticker, api_key)
+        balance_sheets = fetch_balance_sheet(ticker, api_key)
+        metrics = fetch_key_metrics(ticker, api_key)
+        
+        return {
+            'ticker': ticker,
+            'profile': profile,
+            'income_statements': income_statements,
+            'cash_flows': cash_flows,
+            'balance_sheets': balance_sheets,
+            'metrics': metrics
+        }
+    
+    except FMPAPIError:
+        raise
     except Exception as e:
-        st.error(f"Error running valuation: {str(e)}")
-        return
-    
-    # Main results
-    st.header("Valuation Results")
-    
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        st.metric(
-            "Perpetuity Method",
-            format_price(result['price_per_share_gordon']),
-            help="Terminal value using perpetuity formula"
-        )
-    
-    with col2:
-        st.metric(
-            "Exit Multiple Method",
-            format_price(result['price_per_share_exit']),
-            help="Terminal value using exit EBIT multiple"
-        )
-    
-    with col3:
-        st.metric(
-            "Blended Average",
-            format_price(result['price_per_share_avg']),
-            delta=None,
-            help="Average of both methods"
-        )
-    
-    # Tabs for different analyses
-    tab1, tab2, tab3, tab4, tab5 = st.tabs([
-        "Projection", 
-        "Scenarios", 
-        "Sensitivity", 
-        "Market Expectations",
-        "Growth Paths"
-    ])
-    
-    with tab1:
-        st.subheader("Projected Cash Flows")
-        projection_df = create_projection_summary(result['projection'])
-        st.dataframe(projection_df, use_container_width=True, hide_index=True)
-        
-        # Terminal value breakdown
-        st.subheader("Terminal Value")
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.markdown("**Perpetuity Method**")
-            st.write(f"Sum of PV(FCF): {format_millions(result['sum_pv_fcf'])}")
-            st.write(f"Terminal Value: {format_millions(result['terminal_value_gordon'])}")
-            st.write(f"PV(Terminal): {format_millions(result['pv_terminal_gordon'])}")
-            st.write(f"Enterprise Value: {format_millions(result['enterprise_value_gordon'])}")
-            st.write(f"- Net Debt: {format_millions(ratios['net_debt'])}")
-            st.write(f"= Equity Value: {format_millions(result['equity_value_gordon'])}")
-            shares_display = f"{ratios['shares_diluted'] / 1_000_000:,.0f}M" if ratios.get('shares_diluted') else "N/A"
-            st.write(f"÷ Shares: {shares_display}")
-            st.markdown(f"**= ${result['price_per_share_gordon']:.2f}/share**")
-        
-        with col2:
-            st.markdown("**Exit Multiple Method**")
-            st.write(f"Sum of PV(FCF): {format_millions(result['sum_pv_fcf'])}")
-            st.write(f"Terminal Value: {format_millions(result['terminal_value_exit'])}")
-            st.write(f"PV(Terminal): {format_millions(result['pv_terminal_exit'])}")
-            st.write(f"Enterprise Value: {format_millions(result['enterprise_value_exit'])}")
-            st.write(f"- Net Debt: {format_millions(ratios['net_debt'])}")
-            st.write(f"= Equity Value: {format_millions(result['equity_value_exit'])}")
-            shares_display = f"{ratios['shares_diluted'] / 1_000_000:,.0f}M" if ratios.get('shares_diluted') else "N/A"
-            st.write(f"÷ Shares: {shares_display}")
-            st.markdown(f"**= ${result['price_per_share_exit']:.2f}/share**")
-    
-    with tab2:
-        st.subheader("Scenario Analysis")
-        
-        scenarios = generate_scenario_analysis(financials, result['assumptions'])
-        
-        scenario_data = []
-        for scenario_name in ['bear', 'base', 'bull']:
-            s = scenarios[scenario_name]
-            scenario_data.append({
-                'Scenario': scenario_name.capitalize(),
-                'Revenue Growth': format_percentage(s['assumptions']['revenue_growth']),
-                'EBIT Margin': format_percentage(s['assumptions']['ebit_margin']),
-                'Perpetuity Method': format_price(s['price_per_share_gordon']),
-                'Exit Method': format_price(s['price_per_share_exit']),
-                'Blended': format_price(s['price_per_share_avg'])
-            })
-        
-        scenario_df = pd.DataFrame(scenario_data)
-        st.dataframe(scenario_df, use_container_width=True, hide_index=True)
-        
-        # Visual comparison
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            st.metric("Bear Case", format_price(scenarios['bear']['price_per_share_avg']))
-        with col2:
-            st.metric("Base Case", format_price(scenarios['base']['price_per_share_avg']))
-        with col3:
-            st.metric("Bull Case", format_price(scenarios['bull']['price_per_share_avg']))
-    
-    with tab3:
-        st.subheader("Sensitivity Analysis")
-        
-        # WACC × Terminal Growth
-        st.markdown("**WACC × Terminal Growth (Blended Method)**")
-        wacc_terminal_table = generate_wacc_terminal_sensitivity(financials, result['assumptions'])
-        
-        # Format the table for display
-        wacc_terminal_display = wacc_terminal_table.copy()
-        wacc_terminal_display.index = [f"{idx:.1%}" for idx in wacc_terminal_display.index]
-        for col in wacc_terminal_display.columns:
-            wacc_terminal_display[col] = wacc_terminal_display[col].apply(
-                lambda x: format_price(x) if pd.notna(x) else 'N/A'
-            )
-        
-        st.dataframe(wacc_terminal_display, use_container_width=True)
-        
-        st.markdown("---")
-        
-        # Exit Multiple × Revenue Growth
-        st.markdown("**Exit Multiple × Revenue Growth (Exit Method)**")
-        exit_growth_table = generate_exit_multiple_growth_sensitivity(financials, result['assumptions'])
-        
-        # Format the table for display
-        exit_growth_display = exit_growth_table.copy()
-        for col in exit_growth_display.columns:
-            exit_growth_display[col] = exit_growth_display[col].apply(
-                lambda x: format_price(x) if pd.notna(x) else 'N/A'
-            )
-        
-        st.dataframe(exit_growth_display, use_container_width=True)
-    
-    with tab4:
-        st.subheader("Market Expectations")
-        
-        st.markdown("""
-        Enter the current stock price to estimate the growth required to justify today's valuation, holding all other assumptions constant.
-        """)
-        
-        # Auto-fill price if available from API
-        default_price = 100.0
-        if st.session_state.get('current_price'):
-            default_price = float(st.session_state.current_price)
-            st.caption(f"💡 Current market price auto-filled from live data")
-        
-        market_price = st.number_input(
-            "Current Stock Price ($)",
-            min_value=0.0,
-            value=default_price,
-            step=1.0,
-            help="Enter the current market price of the stock"
-        )
-        
-        if st.button("Calculate Implied Growth", type="primary"):
-            with st.spinner("Calculating implied growth rate."):
-                reverse_result = calculate_implied_metrics(
-                    market_price,
-                    financials,
-                    result['assumptions']
-                )
-            
-            col1, col2, col3 = st.columns(3)
-            
-            with col1:
-                st.metric(
-                    "Market Price",
-                    format_price(market_price)
-                )
-            
-            with col2:
-                st.metric(
-                    "Base Case Price",
-                    format_price(reverse_result['base_price']),
-                    delta=format_price(reverse_result['price_difference'])
-                )
-            
-            with col3:
-                st.metric(
-                    "Implied Growth",
-                    format_percentage(reverse_result['implied_growth']),
-                    delta=format_percentage(reverse_result['growth_difference'])
-                )
-            
-            st.markdown("---")
-            
-            st.subheader("Interpretation")
-            st.info(reverse_result['interpretation'])
-            
-            st.markdown("**Assumptions Held Constant:**")
-            const_assumptions = reverse_result['assumptions_held_constant']
-            const_df = pd.DataFrame([
-                {'Parameter': 'EBIT Margin (Initial)', 'Value': format_percentage(const_assumptions['ebit_margin'])},
-                {'Parameter': 'EBIT Margin (Terminal)', 'Value': format_percentage(const_assumptions['ebit_margin_terminal'])},
-                {'Parameter': 'CAPEX Initial', 'Value': format_percentage(const_assumptions['capex_ratio_initial'])},
-                {'Parameter': 'CAPEX Terminal', 'Value': format_percentage(const_assumptions['capex_ratio_terminal'])},
-                {'Parameter': 'Tax Rate', 'Value': format_percentage(const_assumptions['tax_rate'])},
-                {'Parameter': 'WACC', 'Value': format_percentage(const_assumptions['wacc'])},
-                {'Parameter': 'Terminal Growth', 'Value': format_percentage(const_assumptions['terminal_growth'])},
-            ])
-            st.dataframe(const_df, use_container_width=True, hide_index=True)
-    
-    with tab5:
-        st.subheader("Revenue Growth Path (2-Year Plateau)")
-        
-        growth_data = []
-        base_year = financials['years'][0]
-        for i, growth in enumerate(result['growth_path']):
-            phase = 'Plateau' if i >= projection_years - 2 else 'Fade'
-            growth_data.append({
-                'Year': base_year + i + 1,
-                'Growth Rate': format_percentage(growth),
-                'Phase': phase
-            })
-        
-        growth_df = pd.DataFrame(growth_data)
-        st.dataframe(growth_df, use_container_width=True, hide_index=True)
-        
-        st.caption(f"Terminal Growth: {format_percentage(terminal_growth)}")
-        
-        st.markdown("---")
-        
-        st.subheader("CAPEX Fade Path")
-        
-        capex_data = []
-        for i, capex_pct in enumerate(result['capex_path']):
-            capex_data.append({
-                'Year': base_year + i + 1,
-                'CAPEX % Revenue': format_percentage(capex_pct)
-            })
-        
-        capex_df = pd.DataFrame(capex_data)
-        st.dataframe(capex_df, use_container_width=True, hide_index=True)
-        
-        st.caption(f"Terminal CAPEX: {format_percentage(capex_terminal)}")
-        
-        st.markdown("---")
-        
-        st.subheader("EBIT Margin Glide Path")
-        
-        margin_data = []
-        for i, margin in enumerate(result['ebit_margin_path']):
-            margin_data.append({
-                'Year': base_year + i + 1,
-                'EBIT Margin': format_percentage(margin)
-            })
-        
-        margin_df = pd.DataFrame(margin_data)
-        st.dataframe(margin_df, use_container_width=True, hide_index=True)
-        
-        st.caption(f"Terminal EBIT Margin: {format_percentage(ebit_margin_terminal)}")
+        raise FMPAPIError(f"Unexpected error fetching data for '{ticker}': {str(e)}")
 
 
-if __name__ == "__main__":
-    main()
+def map_fmp_to_dcf_format(fmp_data: Dict) -> Dict:
+    """
+    Convert FMP API data to DCF model format (matching SEC parser output)
+    
+    Args:
+        fmp_data: Raw data from fetch_all_company_data()
+        
+    Returns:
+        Dictionary matching the format from sec_parser.extract_financials()
+    """
+    income_statements = fmp_data['income_statements']
+    cash_flows = fmp_data['cash_flows']
+    balance_sheets = fmp_data['balance_sheets']
+    profile = fmp_data['profile']
+    
+    # Extract years from income statements - handle different field names
+    years = []
+    for item in income_statements:
+        # Try calendarYear first, fall back to date field
+        if 'calendarYear' in item:
+            years.append(int(item['calendarYear']))
+        elif 'date' in item:
+            # Extract year from date string (format: "2024-09-28" or similar)
+            year_str = item['date'].split('-')[0]
+            years.append(int(year_str))
+        elif 'fiscalYear' in item:
+            years.append(int(item['fiscalYear']))
+    
+    # Helper function to extract values
+    def get_values(data_list: List[Dict], field: str) -> List[Optional[float]]:
+        """Extract field values, handle missing data"""
+        values = []
+        for item in data_list:
+            value = item.get(field)
+            if value is not None and value != 0:
+                values.append(float(value))
+            else:
+                values.append(None)
+        return values
+    
+    # Revenue
+    revenue = get_values(income_statements, 'revenue')
+    
+    # EBIT (Operating Income)
+    ebit = get_values(income_statements, 'operatingIncome')
+    
+    # CAPEX (negative in FMP, need to keep negative)
+    capex = get_values(cash_flows, 'capitalExpenditure')
+    
+    # Depreciation & Amortization
+    depreciation = get_values(cash_flows, 'depreciationAndAmortization')
+    
+    # Income Tax
+    income_tax = get_values(income_statements, 'incomeTaxExpense')
+    
+    # Pre-tax Income
+    pretax_income = get_values(income_statements, 'incomeBeforeTax')
+    
+    # Balance sheet items
+    current_assets = get_values(balance_sheets, 'totalCurrentAssets')
+    current_liabilities = get_values(balance_sheets, 'totalCurrentLiabilities')
+    cash_values = get_values(balance_sheets, 'cashAndCashEquivalents')
+    short_term_debt = get_values(balance_sheets, 'shortTermDebt')
+    long_term_debt = get_values(balance_sheets, 'longTermDebt')
+    
+    # Calculate Net Working Capital
+    nwc = []
+    for i in range(len(years)):
+        ca = current_assets[i]
+        cl = current_liabilities[i]
+        cash_val = cash_values[i]
+        std = short_term_debt[i] if short_term_debt[i] else 0
+        
+        if ca and cl and cash_val:
+            nwc.append((ca - cash_val) - (cl - std))
+        else:
+            nwc.append(None)
+    
+    # Shares outstanding (diluted) - try multiple sources in priority order
+    shares = profile.get('sharesOutstanding')
+    
+    if not shares:
+        shares = profile.get('numberOfShares')
+    
+    if not shares and income_statements:
+        # Try income statement first (most reliable for diluted shares)
+        shares = income_statements[0].get('weightedAverageShsOutDil')
+        if not shares:
+            shares = income_statements[0].get('weightedAverageShsOut')
+    
+    if not shares and balance_sheets:
+        # Try balance sheet as last resort
+        shares = balance_sheets[0].get('sharesOutstanding')
+    
+    # Convert to float, default to 0 if still None
+    if shares is not None and shares != 0:
+        shares = float(shares)
+    else:
+        shares = 0.0
+    else:
+        shares = 0.0
+    
+    # Net Debt (using most recent balance sheet)
+    latest_bs = balance_sheets[0]
+    ltd = latest_bs.get('longTermDebt', 0) or 0
+    std = latest_bs.get('shortTermDebt', 0) or 0
+    cash_latest = latest_bs.get('cashAndCashEquivalents', 0) or 0
+    net_debt = ltd + std - cash_latest
+    
+    # Calculate ratios (matching sec_parser logic)
+    ratios = calculate_ratios_from_fmp(
+        years, revenue, ebit, capex, depreciation,
+        income_tax, pretax_income, nwc, net_debt, shares
+    )
+    
+    return {
+        'years': years,
+        'Revenue': revenue,
+        'EBIT': ebit,
+        'CAPEX': capex,
+        'Depreciation': depreciation,
+        'IncomeTax': income_tax,
+        'PreTaxIncome': pretax_income,
+        'CurrentAssets': current_assets,
+        'CurrentLiabilities': current_liabilities,
+        'Cash': cash_values,
+        'ShortTermDebt': short_term_debt,
+        'LongTermDebt': long_term_debt,
+        'SharesOutstanding': [shares] * len(years),
+        'NWC': nwc,
+        'ratios': ratios
+    }
+
+
+def calculate_ratios_from_fmp(
+    years: List[int],
+    revenue: List[float],
+    ebit: List[float],
+    capex: List[float],
+    depreciation: List[float],
+    income_tax: List[float],
+    pretax_income: List[float],
+    nwc: List[float],
+    net_debt: float,
+    shares: float
+) -> Dict:
+    """Calculate financial ratios from FMP data (matches sec_parser logic)"""
+    import numpy as np
+    
+    # Safety check for shares
+    if shares == 0 or shares is None:
+        shares = 1.0  # Prevent division by zero
+    
+    # Revenue CAGR
+    rev_latest = revenue[0]
+    rev_3yrs_ago = revenue[3] if len(revenue) > 3 else revenue[-1]
+    if rev_latest and rev_3yrs_ago and rev_latest > 0 and rev_3yrs_ago > 0:
+        years_diff = years[0] - years[min(3, len(years)-1)]
+        if years_diff > 0:
+            revenue_cagr = (rev_latest / rev_3yrs_ago) ** (1 / years_diff) - 1
+        else:
+            revenue_cagr = None
+    else:
+        revenue_cagr = None
+    
+    # Average over last 3 years
+    n_years_avg = min(3, len(years))
+    
+    # EBIT Margin
+    ebit_margins = [
+        ebit[i] / revenue[i] 
+        for i in range(n_years_avg) 
+        if ebit[i] and revenue[i] and revenue[i] > 0
+    ]
+    ebit_margin_avg = np.mean(ebit_margins) if ebit_margins else None
+    
+    # CAPEX Ratio
+    capex_ratios = [
+        abs(capex[i]) / revenue[i] 
+        for i in range(n_years_avg) 
+        if capex[i] and revenue[i] and revenue[i] > 0
+    ]
+    capex_ratio_avg = np.mean(capex_ratios) if capex_ratios else None
+    
+    # D&A Ratio
+    da_ratios = [
+        depreciation[i] / revenue[i] 
+        for i in range(n_years_avg) 
+        if depreciation[i] and revenue[i] and revenue[i] > 0
+    ]
+    da_ratio_avg = np.mean(da_ratios) if da_ratios else None
+    
+    # Tax Rate
+    tax_rates = [
+        income_tax[i] / pretax_income[i] 
+        for i in range(n_years_avg) 
+        if income_tax[i] and pretax_income[i] and pretax_income[i] > 0
+    ]
+    tax_rate_avg = np.mean(tax_rates) if tax_rates else None
+    
+    # Working Capital Ratio
+    wc_ratios = []
+    for i in range(min(3, len(years) - 1)):
+        nwc_curr = nwc[i]
+        nwc_prev = nwc[i + 1]
+        rev_curr = revenue[i]
+        rev_prev = revenue[i + 1]
+        if nwc_curr and nwc_prev and rev_curr and rev_prev and rev_curr > 0 and rev_prev > 0:
+            delta_nwc = nwc_curr - nwc_prev
+            delta_rev = rev_curr - rev_prev
+            if delta_rev != 0:
+                wc_ratios.append(delta_nwc / delta_rev)
+    wc_ratio_avg = np.mean(wc_ratios) if wc_ratios else None
+    
+    return {
+        'revenue_cagr': revenue_cagr,
+        'ebit_margin': ebit_margin_avg,
+        'capex_ratio': capex_ratio_avg,
+        'da_ratio': da_ratio_avg,
+        'tax_rate': tax_rate_avg,
+        'wc_ratio': wc_ratio_avg,
+        'net_debt': net_debt,
+        'shares_diluted': shares
+    }
