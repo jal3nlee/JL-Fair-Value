@@ -131,27 +131,27 @@ def main():
         st.markdown("""
         1. **Download a 10-K filing** from [SEC EDGAR](https://www.sec.gov/edgar/searchedgar/companysearch.html)
         2. **Upload the HTML file** using the sidebar
-        3. **Review historical data** and calculated ratios
-        4. **Adjust assumptions** using the sliders
-        5. **Analyze results** including scenarios and sensitivity tables
-        6. **Run reverse DCF** to see market-implied growth rates
+        3. **Review historical financials** and derived metrics
+        4. **Adjust assumptions** using the model inputs
+        5. **Analyze valuation results**, scenarios, and sensitivity tables
+        6. **Run reverse DCF** to estimate market-implied growth
         """)
         
         st.markdown("### What This Model Does")
         col1, col2 = st.columns(2)
         with col1:
             st.markdown("""
-            - **iXBRL parsing** - Automatic extraction from SEC filings
-            - **Dual terminal value** - Gordon Growth + Exit Multiple
-            - **Revenue plateau** - 2-year plateau before terminal growth
-            - **CAPEX fade** - Linear fade from initial to terminal
+            - **iXBRL parsing** — Automatically extracts financial data from SEC filings
+            - **Dual terminal value** — Uses both perpetuity growth and exit multiple methods
+            - **Revenue plateau** — Applies a short-term plateau before transitioning to long-term growth
+            - **CAPEX fade** — Gradually adjusts reinvestment from initial to long-term levels
             """)
         with col2:
             st.markdown("""
-            - **Scenario analysis** - Bear/Base/Bull cases
-            - **Sensitivity tables** - WACC × Terminal, Exit × Growth
-            - **Reverse DCF** - Market-implied growth solver
-            - **EBIT margin glide** - Smooth transition to terminal margin
+            - **Scenario analysis** — Compare downside, base, and upside cases
+            - **Sensitivity analysis** — Evaluate valuation across key assumption ranges
+            - **Reverse DCF** — Estimate the growth required to justify the current market price
+            - **EBIT margin glide** — Smoothly transitions margins toward a steady-state level
             """)
         
         return
