@@ -325,8 +325,7 @@ def map_fmp_to_dcf_format(fmp_data: Dict) -> Dict:
         shares = float(shares)
     else:
         shares = 0.0
-    else:
-        shares = 0.0
+
     
     # Net Debt (using most recent balance sheet)
     latest_bs = balance_sheets[0]
