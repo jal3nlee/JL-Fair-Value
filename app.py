@@ -9,6 +9,7 @@ from typing import Dict
 
 # Import custom modules
 from src.data.sec_parser import extract_financials
+from src.data.fmp_api import fetch_all_company_data, map_fmp_to_dcf_format, FMPAPIError
 from src.valuation.dcf_engine import dcf_model
 from src.valuation.reverse_dcf import calculate_implied_metrics
 from src.valuation.sensitivity import (
@@ -120,6 +121,25 @@ def parse_10k_file(file_content: bytes) -> Dict:
     return extract_financials(html_content)
 
 
+@st.cache_data(ttl=3600)  # Cache for 1 hour
+def fetch_api_data(ticker: str, api_key: str) -> Dict:
+    """
+    Fetch financial data from FMP API (cached for 1 hour)
+    
+    Args:
+        ticker: Stock ticker symbol
+        api_key: FMP API key
+        
+    Returns:
+        DCF-formatted financial data
+        
+    Raises:
+        FMPAPIError: If API call fails
+    """
+    raw_data = fetch_all_company_data(ticker, api_key)
+    return map_fmp_to_dcf_format(raw_data)
+
+
 @st.cache_data
 def run_dcf_calculation(
     financials_dict: Dict,
@@ -173,9 +193,71 @@ def main():
     with col3:
         st.markdown('<div class="quick-steps-text">Estimate intrinsic value</div>', unsafe_allow_html=True)
     
-    # Sidebar - File Upload
+    # Sidebar - Get Started
     with st.sidebar:
-        st.header("Upload 10-K HTML Filing")
+        st.header("Get Started")
+        
+        # Get API key from secrets
+        try:
+            api_key = st.secrets["api_keys"]["fmp_api_key"]
+            api_available = True
+        except:
+            api_available = False
+            st.warning("⚠️ API key not configured. Upload 10-K files only.")
+        
+        # Option 1: Ticker Entry (Primary method)
+        if api_available:
+            st.subheader("Enter Stock Ticker")
+            ticker_input = st.text_input(
+                "Ticker Symbol",
+                value="NVDA",
+                max_chars=10,
+                help="Enter a stock ticker (e.g., AAPL, MSFT, GOOGL)"
+            ).upper().strip()
+            
+            fetch_button = st.button("Fetch Live Data", type="primary", use_container_width=True)
+            
+            # Initialize session state for ticker data
+            if 'ticker_data' not in st.session_state:
+                st.session_state.ticker_data = None
+                st.session_state.current_ticker = None
+                st.session_state.company_name = None
+                st.session_state.current_price = None
+            
+            # Fetch data when button clicked
+            if fetch_button and ticker_input:
+                with st.spinner(f"Fetching data for {ticker_input}..."):
+                    try:
+                        # Fetch from API
+                        from src.data.fmp_api import fetch_company_profile
+                        profile = fetch_company_profile(ticker_input, api_key)
+                        financials_data = fetch_api_data(ticker_input, api_key)
+                        
+                        # Store in session state
+                        st.session_state.ticker_data = financials_data
+                        st.session_state.current_ticker = ticker_input
+                        st.session_state.company_name = profile.get('companyName', ticker_input)
+                        st.session_state.current_price = profile.get('price')
+                        st.session_state.data_source = 'API'
+                        
+                        st.success(f"✓ Data loaded for {st.session_state.company_name}")
+                        st.caption(f"Current Price: ${st.session_state.current_price:.2f}")
+                        
+                    except FMPAPIError as e:
+                        st.error(f"API Error: {str(e)}")
+                        st.session_state.ticker_data = None
+                    except Exception as e:
+                        st.error(f"Unexpected error: {str(e)}")
+                        st.session_state.ticker_data = None
+            
+            # Show current loaded ticker
+            if st.session_state.ticker_data is not None:
+                st.info(f"📊 Loaded: {st.session_state.company_name} ({st.session_state.current_ticker})")
+            
+            st.markdown("---")
+        
+        # Option 2: 10-K Upload (Fallback method)
+        st.subheader("Or Upload 10-K HTML Filing")
         uploaded_file = st.file_uploader(
             "Upload SEC 10-K HTML file",
             type=['html', 'htm'],
@@ -187,9 +269,12 @@ def main():
             st.success(f"File uploaded: {uploaded_file.name}")
             st.caption(f"File size: {file_size:.1f} MB")
     
-    # Main content
-    if uploaded_file is None:
-        st.info("Upload a 10-K HTML filing from the sidebar to begin")
+    # Main content - check for data from either source
+    has_ticker_data = st.session_state.get('ticker_data') is not None
+    has_file_upload = uploaded_file is not None
+    
+    if not has_ticker_data and not has_file_upload:
+        st.info("Enter a ticker and fetch live data, or upload a 10-K HTML filing to begin")
         
         # Instructions - 2 Column Layout
         col_left, col_right = st.columns(2)
@@ -197,8 +282,8 @@ def main():
         with col_left:
             st.markdown("### How It Works")
             st.markdown("""
-            1. **Download a 10-K filing** from [SEC EDGAR](https://www.sec.gov/edgar/searchedgar/companysearch.html)
-            2. **Upload the HTML file** using the sidebar
+            1. **Enter a stock ticker** (e.g., AAPL, MSFT) and click "Fetch Live Data"
+            2. **Or upload a 10-K HTML file** from [SEC EDGAR](https://www.sec.gov/edgar/searchedgar/companysearch.html)
             3. **Review historical financials** and derived metrics
             4. **Adjust assumptions** using the model inputs
             5. **Analyze valuation results**, scenarios, and sensitivity tables
@@ -220,15 +305,26 @@ def main():
         
         return
     
-    # Extract financials (cached)
-    with st.spinner("Extracting financial data from 10-K HTML filing. This may take a few seconds."):
-        try:
-            financials = parse_10k_file(uploaded_file.getvalue())
-        except Exception as e:
-            st.error(f"Unable to parse 10-K HTML file: {str(e)}")
-            return
+    # Extract financials from either source
+    if has_ticker_data:
+        # Use ticker data from API
+        financials = st.session_state.ticker_data
+        data_source_label = f"Live data for {st.session_state.company_name} ({st.session_state.current_ticker})"
+    else:
+        # Extract from uploaded file
+        with st.spinner("Extracting financial data from 10-K HTML filing. This may take a few seconds."):
+            try:
+                financials = parse_10k_file(uploaded_file.getvalue())
+                data_source_label = f"Data from uploaded 10-K file"
+                # Clear ticker data if switching to file upload
+                st.session_state.ticker_data = None
+                st.session_state.current_ticker = None
+                st.session_state.data_source = '10-K'
+            except Exception as e:
+                st.error(f"Unable to parse 10-K HTML file: {str(e)}")
+                return
     
-    st.success("Financial data extracted successfully")
+    st.success(f"Financial data extracted successfully — {data_source_label}")
     
     # Blue divider - transition moment
     st.markdown('<div class="blue-divider"></div>', unsafe_allow_html=True)
@@ -549,10 +645,16 @@ def main():
         Enter the current stock price to estimate the growth required to justify today's valuation, holding all other assumptions constant.
         """)
         
+        # Auto-fill price if available from API
+        default_price = 100.0
+        if st.session_state.get('current_price'):
+            default_price = float(st.session_state.current_price)
+            st.caption(f"💡 Current market price auto-filled from live data")
+        
         market_price = st.number_input(
             "Current Stock Price ($)",
             min_value=0.0,
-            value=100.0,
+            value=default_price,
             step=1.0,
             help="Enter the current market price of the stock"
         )
