@@ -37,12 +37,42 @@ st.markdown("""
         font-size: 2.5rem;
         font-weight: 700;
         color: #1f77b4;
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.3rem;
     }
     .sub-header {
-        font-size: 1.2rem;
+        font-size: 1.1rem;
         color: #666;
-        margin-bottom: 2rem;
+        margin-bottom: 1rem;
+    }
+    .cta-strip {
+        background-color: #1f77b4;
+        color: white;
+        padding: 0.8rem 1.5rem;
+        border-radius: 0.5rem;
+        text-align: center;
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin: 1rem 0;
+    }
+    .quick-steps {
+        display: flex;
+        justify-content: space-around;
+        margin: 1.5rem 0 2rem 0;
+        padding: 0;
+    }
+    .quick-steps div {
+        text-align: center;
+        flex: 1;
+        padding: 0 1rem;
+    }
+    .quick-steps-text {
+        font-size: 0.95rem;
+        color: #333;
+        font-weight: 500;
+    }
+    .section-header {
+        margin-top: 1.5rem;
+        margin-bottom: 0.8rem;
     }
     .metric-card {
         background-color: #f0f2f6;
@@ -55,6 +85,29 @@ st.markdown("""
     }
     div[data-testid="stMetricValue"] {
         font-size: 1.8rem;
+    }
+    .blue-divider {
+        width: 100%;
+        height: 3px;
+        background: linear-gradient(90deg, #1f77b4 0%, #4a9fd8 100%);
+        margin: 2rem 0 1rem 0;
+    }
+    .divider-text {
+        text-align: center;
+        color: #1f77b4;
+        font-weight: 600;
+        font-size: 1rem;
+        margin-bottom: 2rem;
+    }
+    /* Tighter spacing for non-data sections */
+    .element-container {
+        margin-bottom: 0.5rem;
+    }
+    /* Preserve breathing room for data */
+    div[data-testid="stDataFrame"],
+    div[data-testid="stMetric"] {
+        margin-top: 1rem;
+        margin-bottom: 1rem;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -106,7 +159,19 @@ def main():
     
     # Header
     st.markdown('<div class="main-header">JL Fair Value</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-header">Build a discounted cash flow model to estimate intrinsic value using multiple valuation methods</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sub-header">Build your own discounted cash flow model and estimate intrinsic value</div>', unsafe_allow_html=True)
+    
+    # CTA Strip
+    st.markdown('<div class="cta-strip">SEC filings to intrinsic value in minutes</div>', unsafe_allow_html=True)
+    
+    # Quick Steps
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.markdown('<div class="quick-steps-text">Upload a 10-K</div>', unsafe_allow_html=True)
+    with col2:
+        st.markdown('<div class="quick-steps-text">Build your model</div>', unsafe_allow_html=True)
+    with col3:
+        st.markdown('<div class="quick-steps-text">Estimate intrinsic value</div>', unsafe_allow_html=True)
     
     # Sidebar - File Upload
     with st.sidebar:
@@ -126,28 +191,27 @@ def main():
     if uploaded_file is None:
         st.info("Upload a 10-K HTML filing from the sidebar to begin")
         
-        # Instructions
-        st.markdown("### How to Use the Model")
-        st.markdown("""
-        1. **Download a 10-K filing** from [SEC EDGAR](https://www.sec.gov/edgar/searchedgar/companysearch.html)
-        2. **Upload the HTML file** using the sidebar
-        3. **Review historical financials** and derived metrics
-        4. **Adjust assumptions** using the model inputs
-        5. **Analyze valuation results**, scenarios, and sensitivity tables
-        6. **Run reverse DCF** to estimate market-implied growth
-        """)
+        # Instructions - 2 Column Layout
+        col_left, col_right = st.columns(2)
         
-        st.markdown("### What This Model Does")
-        col1, col2 = st.columns(2)
-        with col1:
+        with col_left:
+            st.markdown("### How It Works")
+            st.markdown("""
+            1. **Download a 10-K filing** from [SEC EDGAR](https://www.sec.gov/edgar/searchedgar/companysearch.html)
+            2. **Upload the HTML file** using the sidebar
+            3. **Review historical financials** and derived metrics
+            4. **Adjust assumptions** using the model inputs
+            5. **Analyze valuation results**, scenarios, and sensitivity tables
+            6. **Run reverse DCF** to estimate market-implied growth
+            """)
+        
+        with col_right:
+            st.markdown("### Capabilities")
             st.markdown("""
             - **iXBRL parsing** — Automatically extracts financial data from SEC filings
             - **Dual terminal value** — Uses both perpetuity growth and exit multiple methods
             - **Revenue plateau** — Applies a short-term plateau before transitioning to long-term growth
             - **CAPEX fade** — Gradually adjusts reinvestment from initial to long-term levels
-            """)
-        with col2:
-            st.markdown("""
             - **Scenario analysis** — Compare downside, base, and upside cases
             - **Sensitivity analysis** — Evaluate valuation across key assumption ranges
             - **Reverse DCF** — Estimate the growth required to justify the current market price
@@ -165,6 +229,10 @@ def main():
             return
     
     st.success("Financial data extracted successfully")
+    
+    # Blue divider - transition moment
+    st.markdown('<div class="blue-divider"></div>', unsafe_allow_html=True)
+    st.markdown('<div class="divider-text">Model Initialized — Adjust assumptions below</div>', unsafe_allow_html=True)
     
     # Display historical data
     st.header("Historical Financials")
