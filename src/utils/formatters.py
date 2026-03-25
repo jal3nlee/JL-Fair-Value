@@ -149,7 +149,7 @@ def create_ratios_summary(ratios: dict) -> pd.DataFrame:
         {'Metric': 'Tax Rate (3-yr avg)', 'Value': format_percentage(ratios['tax_rate'])},
         {'Metric': 'Working Capital Ratio', 'Value': format_percentage(ratios['wc_ratio'])},
         {'Metric': 'Net Debt', 'Value': format_millions(ratios['net_debt'])},
-        {'Metric': 'Shares (diluted)', 'Value': f"{ratios['shares_diluted'] / 1_000_000:,.0f}M"}
+        {'Metric': 'Shares (diluted)', 'Value': f"{ratios['shares_diluted'] / 1_000_000:,.0f}M" if ratios.get('shares_diluted') else "N/A"}
     ]
     
     return pd.DataFrame(data)
