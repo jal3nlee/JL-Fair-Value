@@ -305,7 +305,21 @@ def map_fmp_to_dcf_format(fmp_data: Dict) -> Dict:
             nwc.append(None)
     
     # Shares outstanding (diluted)
-    shares = profile.get('sharesOutstanding', profile.get('numberOfShares'))
+    shares = profile.get('sharesOutstanding')
+    if shares is None:
+        shares = profile.get('numberOfShares')
+    if shares is None:
+        # If still None, try to get from balance sheet or income statement
+        if balance_sheets and 'sharesOutstanding' in balance_sheets[0]:
+            shares = balance_sheets[0].get('sharesOutstanding')
+        elif income_statements and 'weightedAverageShsOutDil' in income_statements[0]:
+            shares = income_statements[0].get('weightedAverageShsOutDil')
+    
+    # Convert to float, default to 0 if still None
+    if shares is not None:
+        shares = float(shares)
+    else:
+        shares = 0.0
     
     # Net Debt (using most recent balance sheet)
     latest_bs = balance_sheets[0]
@@ -354,12 +368,19 @@ def calculate_ratios_from_fmp(
     """Calculate financial ratios from FMP data (matches sec_parser logic)"""
     import numpy as np
     
+    # Safety check for shares
+    if shares == 0 or shares is None:
+        shares = 1.0  # Prevent division by zero
+    
     # Revenue CAGR
     rev_latest = revenue[0]
     rev_3yrs_ago = revenue[3] if len(revenue) > 3 else revenue[-1]
-    if rev_latest and rev_3yrs_ago:
+    if rev_latest and rev_3yrs_ago and rev_latest > 0 and rev_3yrs_ago > 0:
         years_diff = years[0] - years[min(3, len(years)-1)]
-        revenue_cagr = (rev_latest / rev_3yrs_ago) ** (1 / years_diff) - 1
+        if years_diff > 0:
+            revenue_cagr = (rev_latest / rev_3yrs_ago) ** (1 / years_diff) - 1
+        else:
+            revenue_cagr = None
     else:
         revenue_cagr = None
     
@@ -370,7 +391,7 @@ def calculate_ratios_from_fmp(
     ebit_margins = [
         ebit[i] / revenue[i] 
         for i in range(n_years_avg) 
-        if ebit[i] and revenue[i]
+        if ebit[i] and revenue[i] and revenue[i] > 0
     ]
     ebit_margin_avg = np.mean(ebit_margins) if ebit_margins else None
     
@@ -378,7 +399,7 @@ def calculate_ratios_from_fmp(
     capex_ratios = [
         abs(capex[i]) / revenue[i] 
         for i in range(n_years_avg) 
-        if capex[i] and revenue[i]
+        if capex[i] and revenue[i] and revenue[i] > 0
     ]
     capex_ratio_avg = np.mean(capex_ratios) if capex_ratios else None
     
@@ -386,7 +407,7 @@ def calculate_ratios_from_fmp(
     da_ratios = [
         depreciation[i] / revenue[i] 
         for i in range(n_years_avg) 
-        if depreciation[i] and revenue[i]
+        if depreciation[i] and revenue[i] and revenue[i] > 0
     ]
     da_ratio_avg = np.mean(da_ratios) if da_ratios else None
     
@@ -405,7 +426,7 @@ def calculate_ratios_from_fmp(
         nwc_prev = nwc[i + 1]
         rev_curr = revenue[i]
         rev_prev = revenue[i + 1]
-        if nwc_curr and nwc_prev and rev_curr and rev_prev:
+        if nwc_curr and nwc_prev and rev_curr and rev_prev and rev_curr > 0 and rev_prev > 0:
             delta_nwc = nwc_curr - nwc_prev
             delta_rev = rev_curr - rev_prev
             if delta_rev != 0:
