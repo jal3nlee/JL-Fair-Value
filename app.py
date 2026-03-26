@@ -109,15 +109,6 @@ st.markdown("""
         padding-top: 2rem;
         padding-bottom: 2rem;
     }
-    
-    /* Run Valuation button */
-    .stButton > button[kind="primary"] {
-        background-color: #667eea;
-        border: none;
-        font-weight: 600;
-        font-size: 1.1rem;
-        padding: 0.75rem 2rem;
-    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -495,8 +486,14 @@ def main():
         
         st.markdown("---")
         
-        # Editable Base Assumptions
-        st.markdown("### Edit Base Case Assumptions")
+        # Editable Base Assumptions - Header with button inline
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            st.markdown("### Edit Base Case Assumptions")
+        with col2:
+            if st.button("Update Assumptions", type="primary", use_container_width=True, key="update_btn"):
+                st.session_state.valuation_ready = True
+        
         st.caption("Adjust the sliders below. Bear and Bull scenarios use multipliers of Base values.")
         
         # Extract current values from session state
@@ -673,14 +670,6 @@ def main():
             st.session_state.assumptions['base']['projection_years'] = projection_years
         
         st.markdown("---")
-        
-        # Run Valuation Button
-        col1, col2, col3 = st.columns([1, 1, 1])
-        with col2:
-            if st.button("Run Valuation", type="primary", use_container_width=True):
-                # Trigger calculation
-                st.session_state.valuation_ready = True
-                st.success("Valuation complete! Check Dashboard, Gordon Growth, and Exit Multiple tabs.")
     
     # Tab 4: Growth Paths
     with tabs[3]:
