@@ -465,8 +465,15 @@ def main():
         
         st.markdown("---")
         
-        # Editable Base Assumptions
-        st.markdown("### Edit Base Case Assumptions")
+        # Editable Base Assumptions - Header with button inline
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            st.markdown("### Edit Base Case Assumptions")
+        with col2:
+            if st.button("Update Assumptions", type="primary", use_container_width=True, key="update_btn"):
+                st.session_state.valuation_ready = True
+                st.success("Assumptions updated!")
+        
         st.caption("Adjust the sliders below. Bear and Bull scenarios use multipliers of Base values.")
         
         # Extract current values from session state
@@ -477,17 +484,33 @@ def main():
         col1, col2 = st.columns(2)
         
         with col1:
-            revenue_growth_pct = st.slider(
-                "Revenue Growth (Initial)",
-                min_value=-10.0,
-                max_value=100.0,
-                value=st.session_state.assumptions['base']['revenue_growth'] * 100,
-                step=0.5,
-                format="%.1f%%",
-                help="Initial revenue growth rate",
-                key="rev_growth"
-            )
-            st.session_state.assumptions['base']['revenue_growth'] = revenue_growth_pct / 100
+            st.write("**Revenue Growth (Initial)**")
+            slider_col, input_col = st.columns([3, 1])
+            with slider_col:
+                revenue_growth_pct = st.slider(
+                    "rev_growth_slider",
+                    min_value=-10.0,
+                    max_value=100.0,
+                    value=st.session_state.assumptions['base']['revenue_growth'] * 100,
+                    step=0.5,
+                    format="%.1f%%",
+                    help="Initial revenue growth rate",
+                    key="rev_growth",
+                    label_visibility="collapsed"
+                )
+            with input_col:
+                revenue_growth_input = st.number_input(
+                    "rev_growth_input_label",
+                    min_value=-10.0,
+                    max_value=100.0,
+                    value=st.session_state.assumptions['base']['revenue_growth'] * 100,
+                    step=0.5,
+                    format="%.1f",
+                    key="rev_growth_num",
+                    label_visibility="collapsed"
+                )
+            # Use number input value if changed, otherwise slider
+            st.session_state.assumptions['base']['revenue_growth'] = revenue_growth_input / 100
             
             ebit_margin_pct = st.slider(
                 "EBIT Margin (Initial)",
