@@ -297,6 +297,35 @@ def main():
         }
     }
     
+    # Test: Display content directly without tabs
+    st.markdown("---")
+    st.header("TEST: Direct Display (No Tabs)")
+    
+    # Try to display financials table
+    st.subheader("Historical Financials")
+    try:
+        hist_df = create_historical_summary(financials)
+        st.dataframe(hist_df, use_container_width=True, hide_index=True)
+        st.success("✓ Historical table rendered")
+    except Exception as e:
+        st.error(f"Error creating historical table: {str(e)}")
+    
+    # Try to display ratios table
+    st.subheader("Historical Averages")
+    try:
+        ratios_df = create_ratios_summary(financials['ratios'])
+        st.dataframe(ratios_df, use_container_width=True, hide_index=True)
+        st.success("✓ Ratios table rendered")
+    except Exception as e:
+        st.error(f"Error creating ratios table: {str(e)}")
+    
+    st.markdown("---")
+    st.markdown("**If you see tables above, the data works. The issue is with tabs.**")
+    
+    return  # Stop here for now
+    
+    # Original tab code (commented out for now)
+    """
     # ALWAYS update Bear and Bull based on current Base values (runs every time page renders)
     base = st.session_state.assumptions['base']
     st.session_state.assumptions['bear'] = {k: v * 0.6 if k not in ['projection_years', 'exit_multiple', 'tax_rate'] else v for k, v in base.items()}
