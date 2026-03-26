@@ -386,14 +386,26 @@ def calculate_ratios_from_fmp(
     # Revenue CAGR
     rev_latest = revenue[0]
     rev_3yrs_ago = revenue[3] if len(revenue) > 3 else revenue[-1]
+    
+    # Debug: print values to understand the issue
+    print(f"DEBUG Revenue CAGR:")
+    print(f"  Revenue list: {revenue}")
+    print(f"  Latest revenue: {rev_latest}")
+    print(f"  3 years ago revenue: {rev_3yrs_ago}")
+    print(f"  Years: {years}")
+    
     if rev_latest and rev_3yrs_ago and rev_latest > 0 and rev_3yrs_ago > 0:
         years_diff = years[0] - years[min(3, len(years)-1)]
+        print(f"  Years diff: {years_diff}")
         if years_diff > 0:
             revenue_cagr = (rev_latest / rev_3yrs_ago) ** (1 / years_diff) - 1
+            print(f"  Calculated CAGR: {revenue_cagr} ({revenue_cagr * 100:.1f}%)")
         else:
             revenue_cagr = None
+            print(f"  Years diff <= 0, setting CAGR to None")
     else:
         revenue_cagr = None
+        print(f"  Missing revenue data, setting CAGR to None")
     
     # Average over last 3 years
     n_years_avg = min(3, len(years))
