@@ -479,8 +479,10 @@ def main():
     
     # Tab 2: Dashboard
     with tabs[1]:
-        # Get current price from profile
-        current_price = profile.get('price', 178.68)
+        # Current Price (anchor at top)
+        current_price = profile.get('price', 0)
+        st.markdown(f"### Current Price: ${current_price:.2f}")
+        st.markdown("---")
         
         # Extract DCF results
         dcf_results = st.session_state.get('dcf_results', {})
@@ -490,16 +492,16 @@ def main():
         col1, col2, col3 = st.columns(3)
         with col1:
             gordon_bear = dcf_results.get('bear', {}).get('price_per_share_gordon', 0) if dcf_results.get('bear') else 0
-            gordon_bear_delta = ((gordon_bear - current_price) / current_price) * 100 if gordon_bear > 0 else 0
-            st.metric("Bear", f"${gordon_bear:.0f}/share", f"{gordon_bear_delta:+.1f}%")
+            gordon_bear_delta = ((gordon_bear - current_price) / current_price * 100) if gordon_bear > 0 and current_price > 0 else 0
+            st.metric("Bear", f"${gordon_bear:.0f}", f"{gordon_bear_delta:+.1f}%")
         with col2:
             gordon_base = dcf_results.get('base', {}).get('price_per_share_gordon', 0) if dcf_results.get('base') else 0
-            gordon_base_delta = ((gordon_base - current_price) / current_price) * 100 if gordon_base > 0 else 0
-            st.metric("Base", f"${gordon_base:.0f}/share", f"{gordon_base_delta:+.1f}%")
+            gordon_base_delta = ((gordon_base - current_price) / current_price * 100) if gordon_base > 0 and current_price > 0 else 0
+            st.metric("Base", f"${gordon_base:.0f}", f"{gordon_base_delta:+.1f}%")
         with col3:
             gordon_bull = dcf_results.get('bull', {}).get('price_per_share_gordon', 0) if dcf_results.get('bull') else 0
-            gordon_bull_delta = ((gordon_bull - current_price) / current_price) * 100 if gordon_bull > 0 else 0
-            st.metric("Bull", f"${gordon_bull:.0f}/share", f"{gordon_bull_delta:+.1f}%")
+            gordon_bull_delta = ((gordon_bull - current_price) / current_price * 100) if gordon_bull > 0 and current_price > 0 else 0
+            st.metric("Bull", f"${gordon_bull:.0f}", f"{gordon_bull_delta:+.1f}%")
         
         st.markdown("---")
         
@@ -508,16 +510,16 @@ def main():
         col1, col2, col3 = st.columns(3)
         with col1:
             exit_bear = dcf_results.get('bear', {}).get('price_per_share_exit', 0) if dcf_results.get('bear') else 0
-            exit_bear_delta = ((exit_bear - current_price) / current_price) * 100 if exit_bear > 0 else 0
-            st.metric("Bear", f"${exit_bear:.0f}/share", f"{exit_bear_delta:+.1f}%")
+            exit_bear_delta = ((exit_bear - current_price) / current_price * 100) if exit_bear > 0 and current_price > 0 else 0
+            st.metric("Bear", f"${exit_bear:.0f}", f"{exit_bear_delta:+.1f}%")
         with col2:
             exit_base = dcf_results.get('base', {}).get('price_per_share_exit', 0) if dcf_results.get('base') else 0
-            exit_base_delta = ((exit_base - current_price) / current_price) * 100 if exit_base > 0 else 0
-            st.metric("Base", f"${exit_base:.0f}/share", f"{exit_base_delta:+.1f}%")
+            exit_base_delta = ((exit_base - current_price) / current_price * 100) if exit_base > 0 and current_price > 0 else 0
+            st.metric("Base", f"${exit_base:.0f}", f"{exit_base_delta:+.1f}%")
         with col3:
             exit_bull = dcf_results.get('bull', {}).get('price_per_share_exit', 0) if dcf_results.get('bull') else 0
-            exit_bull_delta = ((exit_bull - current_price) / current_price) * 100 if exit_bull > 0 else 0
-            st.metric("Bull", f"${exit_bull:.0f}/share", f"{exit_bull_delta:+.1f}%")
+            exit_bull_delta = ((exit_bull - current_price) / current_price * 100) if exit_bull > 0 and current_price > 0 else 0
+            st.metric("Bull", f"${exit_bull:.0f}", f"{exit_bull_delta:+.1f}%")
         
         st.markdown("---")
         
@@ -526,18 +528,46 @@ def main():
         col1, col2, col3 = st.columns(3)
         with col1:
             bear_value = dcf_results.get('bear', {}).get('price_per_share_avg', 0) if dcf_results.get('bear') else 0
-            bear_delta = ((bear_value - current_price) / current_price) * 100 if bear_value > 0 else 0
-            st.metric("Bear", f"${bear_value:.0f}/share", f"{bear_delta:+.1f}%")
+            bear_delta = ((bear_value - current_price) / current_price * 100) if bear_value > 0 and current_price > 0 else 0
+            st.metric("Bear", f"${bear_value:.0f}", f"{bear_delta:+.1f}%")
         with col2:
             base_value = dcf_results.get('base', {}).get('price_per_share_avg', 0) if dcf_results.get('base') else 0
-            base_delta = ((base_value - current_price) / current_price) * 100 if base_value > 0 else 0
-            st.metric("Base", f"${base_value:.0f}/share", f"{base_delta:+.1f}%")
+            base_delta = ((base_value - current_price) / current_price * 100) if base_value > 0 and current_price > 0 else 0
+            st.metric("Base", f"${base_value:.0f}", f"{base_delta:+.1f}%")
+            
+            # Implied Market Cap (only under Blended Base)
+            if base_value > 0:
+                shares = financials['ratios'].get('shares_diluted', 0)
+                implied_market_cap = base_value * shares
+                current_market_cap = profile.get('marketCap', 0)
+                st.caption(f"Implied Market Cap: ${implied_market_cap/1e12:.1f}T (vs ${current_market_cap/1e12:.1f}T current)")
         with col3:
             bull_value = dcf_results.get('bull', {}).get('price_per_share_avg', 0) if dcf_results.get('bull') else 0
-            bull_delta = ((bull_value - current_price) / current_price) * 100 if bull_value > 0 else 0
-            st.metric("Bull", f"${bull_value:.0f}/share", f"{bull_delta:+.1f}%")
+            bull_delta = ((bull_value - current_price) / current_price * 100) if bull_value > 0 and current_price > 0 else 0
+            st.metric("Bull", f"${bull_value:.0f}", f"{bull_delta:+.1f}%")
+        
+        st.markdown("---")
+        
+        # Base Case Drivers (one-line summary)
+        base_assumptions = st.session_state.assumptions['base']
+        st.markdown(f"**Base Case:** {base_assumptions['revenue_growth']*100:.1f}% growth | "
+                   f"{base_assumptions['ebit_margin_terminal']*100:.1f}% margin | "
+                   f"{base_assumptions['wacc']*100:.1f}% WACC")
+        
+        # Valuation Range
+        if bear_value > 0 and bull_value > 0:
+            st.markdown(f"**Valuation Range:** ${bear_value:.0f} – ${bull_value:.0f}")
+        
+        st.markdown("---")
+        
+        # Method Insight
+        if gordon_base > 0 and exit_base > 0:
+            if exit_base > gordon_base * 1.1:
+                st.caption("💡 Exit Multiple method produces higher valuations than Gordon Growth")
+            elif gordon_base > exit_base * 1.1:
+                st.caption("💡 Gordon Growth method produces higher valuations than Exit Multiple")
     
-    # Tab 2: Financials
+    # Tab 3: Financials
     with tabs[2]:
         
         if financials is None:
