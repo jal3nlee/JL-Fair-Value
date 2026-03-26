@@ -83,8 +83,17 @@ st.markdown("""
     }
     
     .stTabs [data-baseweb="tab"] {
-        padding: 0.5rem 1rem;
-        font-weight: 500;
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        font-size: 1rem;
+        color: #1f2937 !important;
+        background-color: transparent;
+    }
+    
+    .stTabs [data-baseweb="tab"][aria-selected="true"] {
+        background-color: white;
+        color: #667eea !important;
+        border-radius: 0.375rem;
     }
     
     /* Branding */
@@ -121,11 +130,11 @@ def fetch_api_data(ticker: str, api_key: str) -> Dict:
 def render_company_header(profile: Dict, financials: Dict):
     """Render persistent company header"""
     
-    # Extract data
+    # Extract data with proper fallbacks
     company_name = profile.get('companyName', 'Unknown Company')
     ticker = profile.get('symbol', 'N/A')
     exchange = profile.get('exchange', 'N/A')
-    country = profile.get('country', 'N/A')
+    country = profile.get('country', 'US')  # Default to US
     sector = profile.get('sector', 'N/A')
     industry = profile.get('industry', 'N/A')
     price = profile.get('price', 0)
@@ -139,14 +148,18 @@ def render_company_header(profile: Dict, financials: Dict):
         market_cap_str = f"${market_cap/1_000_000_000_000:.1f}T"
     elif market_cap >= 1_000_000_000:
         market_cap_str = f"${market_cap/1_000_000_000:.1f}B"
-    else:
+    elif market_cap > 0:
         market_cap_str = f"${market_cap/1_000_000:.1f}M"
+    else:
+        market_cap_str = "N/A"
     
     # Format volume
     if volume >= 1_000_000:
         volume_str = f"{volume/1_000_000:.0f}M"
-    else:
+    elif volume >= 1_000:
         volume_str = f"{volume/1_000:.0f}K"
+    else:
+        volume_str = f"{volume:,.0f}" if volume > 0 else "N/A"
     
     # Change color
     change_class = "price-change-positive" if change >= 0 else "price-change-negative"
@@ -261,71 +274,90 @@ def main():
     
     # Tab 1: Dashboard
     with tabs[0]:
-        st.header("Dashboard")
-        st.markdown("**Summary of all valuation scenarios**")
+        # No title - just show the grid
         
-        # Placeholder for now
+        # Row headers
+        st.markdown("**Gordon Growth Method**")
         col1, col2, col3 = st.columns(3)
         with col1:
-            st.metric("Bear Case", "$197/share", delta="-52%", delta_color="inverse")
+            st.metric("Bear", "$128/share")
         with col2:
-            st.metric("Base Case", "$422/share", delta="Reference")
+            st.metric("Base", "$271/share")
         with col3:
-            st.metric("Bull Case", "$697/share", delta="+65%")
+            st.metric("Bull", "$448/share")
         
         st.markdown("---")
-        st.markdown("*Dashboard will show summary of key assumptions and results*")
+        
+        st.markdown("**Exit Multiple Method**")
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Bear", "$267/share")
+        with col2:
+            st.metric("Base", "$572/share")
+        with col3:
+            st.metric("Bull", "$946/share")
+        
+        st.markdown("---")
+        
+        st.markdown("**Blended Average**")
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            # Calculate vs current price ($178.68)
+            bear_value = 197
+            current_price = price if price > 0 else 178.68
+            bear_delta = ((bear_value - current_price) / current_price) * 100
+            st.metric("Bear", f"${bear_value}/share", f"{bear_delta:+.1f}%")
+        with col2:
+            base_value = 422
+            base_delta = ((base_value - current_price) / current_price) * 100
+            st.metric("Base", f"${base_value}/share", f"{base_delta:+.1f}%")
+        with col3:
+            bull_value = 697
+            bull_delta = ((bull_value - current_price) / current_price) * 100
+            st.metric("Bull", f"${bull_value}/share", f"{bull_delta:+.1f}%")
     
     # Tab 2: Financials
     with tabs[1]:
-        st.header("Financials")
-        
         col1, col2 = st.columns(2)
         
         with col1:
-            st.subheader("Reported Financials")
+            st.subheader("Historical Financials")
+            st.caption("Reported performance across revenue, profitability, and cash flow")
             hist_df = create_historical_summary(financials)
             st.dataframe(hist_df, use_container_width=True, hide_index=True)
         
         with col2:
-            st.subheader("Derived Metrics")
+            st.subheader("Historical Averages")
+            st.caption("Three-year average growth and margins to guide forward assumptions")
             ratios_df = create_ratios_summary(financials['ratios'])
             st.dataframe(ratios_df, use_container_width=True, hide_index=True)
     
     # Tab 3: Assumptions
     with tabs[2]:
-        st.header("Assumptions")
-        st.markdown("**Adjust model inputs (sliders will be added here)**")
-        
         # Scenario selector
         scenario = st.radio("Scenario:", ["Bear", "Base", "Bull"], index=1, horizontal=True)
         
         st.markdown("---")
-        st.markdown("*All input sliders will be migrated to this tab*")
+        st.markdown("*All input sliders will be migrated to this tab - only Base editable*")
     
     # Tab 4: Growth Paths
     with tabs[3]:
-        st.header("Growth Paths")
         st.markdown("*Charts showing how assumptions translate over projection period*")
     
     # Tab 5: Forecast
     with tabs[4]:
-        st.header("Forecast")
         st.markdown("*Projected revenue and free cash flow tables*")
     
     # Tab 6: Gordon Growth
     with tabs[5]:
-        st.header("Gordon Growth Method")
         st.markdown("*Perpetuity valuation results and sensitivity analysis*")
     
     # Tab 7: Exit Multiple
     with tabs[6]:
-        st.header("Exit Multiple Method")
         st.markdown("*Exit multiple valuation results and sensitivity analysis*")
     
     # Tab 8: Implied
     with tabs[7]:
-        st.header("Implied Market Expectations")
         st.markdown("*Reverse DCF analysis showing what the market is pricing in*")
 
 
