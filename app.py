@@ -800,6 +800,22 @@ def main():
             
             st.markdown("---")
             
+            # Base Case Drivers
+            st.markdown("##### Base Case Drivers")
+            base_assumptions = st.session_state.assumptions['base']
+            
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                st.metric("Revenue Growth", f"{base_assumptions['revenue_growth']*100:.1f}%")
+            with col2:
+                st.metric("Terminal Growth", f"{base_assumptions['terminal_growth']*100:.1f}%")
+            with col3:
+                st.metric("EBIT Margin (Term)", f"{base_assumptions['ebit_margin_terminal']*100:.1f}%")
+            with col4:
+                st.metric("WACC", f"{base_assumptions['wacc']*100:.1f}%")
+            
+            st.markdown("---")
+            
             # Sensitivity Analysis
             st.markdown("#### Sensitivity Analysis")
             st.caption("Fair value at different WACC and Terminal Growth combinations (Base case)")
@@ -908,6 +924,22 @@ def main():
                 bull_price = bull_dcf.get('price_per_share_exit', 0) if bull_dcf else 0
                 bull_delta = ((bull_price - current_price) / current_price * 100) if current_price > 0 else 0
                 st.metric("Bull", f"${bull_price:.2f}", f"{bull_delta:+.1f}%")
+            
+            st.markdown("---")
+            
+            # Base Case Drivers
+            st.markdown("##### Base Case Drivers")
+            base_assumptions = st.session_state.assumptions['base']
+            
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                st.metric("Revenue Growth", f"{base_assumptions['revenue_growth']*100:.1f}%")
+            with col2:
+                st.metric("EBIT Margin (Term)", f"{base_assumptions['ebit_margin_terminal']*100:.1f}%")
+            with col3:
+                st.metric("WACC", f"{base_assumptions['wacc']*100:.1f}%")
+            with col4:
+                st.metric("Exit Multiple", f"{base_assumptions['exit_multiple']:.1f}x")
             
             st.markdown("---")
             
