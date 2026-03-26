@@ -349,6 +349,9 @@ def main():
     if 'dcf_results' not in st.session_state:
         st.session_state.dcf_results = {}
     
+    # Show DCF calculation status
+    dcf_errors = []
+    
     for scenario_name in ['bear', 'base', 'bull']:
         # Map session state assumptions to dcf_model format
         scenario_assumptions = st.session_state.assumptions[scenario_name]
@@ -372,10 +375,17 @@ def main():
             result = dcf_model(financials, dcf_assumptions, scenario_name)
             st.session_state.dcf_results[scenario_name] = result
         except Exception as e:
-            # Silently handle errors - don't display them
+            error_msg = f"DCF {scenario_name}: {str(e)}"
+            dcf_errors.append(error_msg)
             st.session_state.dcf_results[scenario_name] = None
     
-    # Create tabs (don't show any errors or messages before tabs to avoid tab reset)
+    # Show errors if any
+    if dcf_errors:
+        st.error("DCF Calculation Errors:")
+        for err in dcf_errors:
+            st.write(f"- {err}")
+    
+    # Create tabs
     tabs = st.tabs([
         "Overview",
         "Dashboard",
@@ -456,16 +466,8 @@ def main():
             ebit_margin = financials['ratios'].get('ebit_margin', 0)
             st.metric("EBIT Margin", f"{ebit_margin*100:.1f}%")
         with col2:
-            # Calculate FCF margin from fcf_ttm calculated above
-            if financials['Revenue'] and len(financials['Revenue']) > 0:
-                latest_revenue = financials['Revenue'][0]
-                latest_ebit = financials['EBIT'][0]
-                latest_capex = financials['CAPEX'][0]
-                latest_da = financials['Depreciation'][0]
-                tax_rate = financials['ratios']['tax_rate']
-                nopat = latest_ebit * (1 - tax_rate) if tax_rate else latest_ebit * 0.79
-                fcf_for_margin = nopat + latest_da + latest_capex
-                fcf_margin = fcf_for_margin / latest_revenue
+            if 'fcf_ttm' in locals() and financials['Revenue']:
+                fcf_margin = fcf_ttm / financials['Revenue'][0]
                 st.metric("FCF Margin", f"{fcf_margin*100:.1f}%")
             else:
                 st.metric("FCF Margin", "N/A")
@@ -628,8 +630,12 @@ def main():
         # Extract ratios before buttons (needed for reset)
         ratios = financials['ratios']
         
-        # Editable Base Assumptions - Header with button inline
-        col1, col2 = st.columns([3, 1])
+        # Initialize reset counter if not exists
+        if 'reset_counter' not in st.session_state:
+            st.session_state.reset_counter = 0
+        
+        # Editable Base Assumptions - Header with buttons inline
+        col1, col2, col3 = st.columns([2, 1, 1])
         with col1:
             st.markdown("### Edit Base Case Assumptions")
         with col2:
@@ -668,15 +674,13 @@ def main():
                 }
                 st.session_state.user_edited_assumptions = set()
                 
-                # Delete all slider widget keys to force them to recreate with new values
-                slider_keys = ['rev_growth', 'term_growth', 'ebit_init', 'ebit_term',
-                              'capex_init', 'capex_term', 'da_ratio', 'wc_ratio',
-                              'tax_rate', 'wacc', 'exit_mult', 'proj_years']
-                for key in slider_keys:
-                    if key in st.session_state:
-                        del st.session_state[key]
+                # Increment counter to force widget recreation with new keys
+                st.session_state.reset_counter += 1
                 
                 st.rerun()
+        with col3:
+            if st.button("Update Assumptions", type="primary", use_container_width=True, key="update_btn"):
+                st.session_state.valuation_ready = True
         
         st.caption("Adjust the sliders below. Bear and Bull scenarios use multipliers of Base values.")
         
@@ -693,7 +697,7 @@ def main():
                 step=0.5,
                 format="%.1f%%",
                 help="Annualized revenue growth rate for forecast period",
-                key="rev_growth"
+                key=f"rev_growth_{st.session_state.reset_counter}"
             )
             st.session_state.assumptions['base']['revenue_growth'] = revenue_growth_pct / 100
             
@@ -705,7 +709,7 @@ def main():
                 step=0.5,
                 format="%.1f%%",
                 help="Starting EBIT margin",
-                key="ebit_init"
+                key=f"ebit_init_{st.session_state.reset_counter}"
             )
             st.session_state.assumptions['base']['ebit_margin_initial'] = ebit_margin_pct / 100
         
@@ -718,7 +722,7 @@ def main():
                 step=0.1,
                 format="%.1f%%",
                 help="Perpetual growth rate",
-                key="term_growth"
+                key=f"term_growth_{st.session_state.reset_counter}"
             )
             st.session_state.assumptions['base']['terminal_growth'] = terminal_growth_pct / 100
             
@@ -730,7 +734,7 @@ def main():
                 step=0.5,
                 format="%.1f%%",
                 help="Long-term EBIT margin",
-                key="ebit_term"
+                key=f"ebit_term_{st.session_state.reset_counter}"
             )
             st.session_state.assumptions['base']['ebit_margin_terminal'] = ebit_margin_terminal_pct / 100
         
@@ -748,7 +752,7 @@ def main():
                 step=0.5,
                 format="%.1f%%",
                 help="Initial CAPEX as % of revenue",
-                key="capex_init"
+                key=f"capex_init_{st.session_state.reset_counter}"
             )
             st.session_state.assumptions['base']['capex_initial'] = capex_initial_pct / 100
             
@@ -760,7 +764,7 @@ def main():
                 step=0.5,
                 format="%.1f%%",
                 help="Depreciation & Amortization as % of revenue",
-                key="da_ratio"
+                key=f"da_ratio_{st.session_state.reset_counter}"
             )
             st.session_state.assumptions['base']['da_ratio'] = da_ratio_pct / 100
         
@@ -773,7 +777,7 @@ def main():
                 step=0.5,
                 format="%.1f%%",
                 help="Terminal CAPEX as % of revenue",
-                key="capex_term"
+                key=f"capex_term_{st.session_state.reset_counter}"
             )
             st.session_state.assumptions['base']['capex_terminal'] = capex_terminal_pct / 100
             
@@ -785,7 +789,7 @@ def main():
                 step=0.5,
                 format="%.1f%%",
                 help="Change in NWC as % of revenue change",
-                key="wc_ratio"
+                key=f"wc_ratio_{st.session_state.reset_counter}"
             )
             st.session_state.assumptions['base']['wc_ratio'] = wc_ratio_pct / 100
         
@@ -803,7 +807,7 @@ def main():
                 step=0.5,
                 format="%.1f%%",
                 help="Effective tax rate",
-                key="tax_rate"
+                key=f"tax_rate_{st.session_state.reset_counter}"
             )
             st.session_state.assumptions['base']['tax_rate'] = tax_rate_pct / 100
         
@@ -816,7 +820,7 @@ def main():
                 step=0.1,
                 format="%.1f%%",
                 help="Weighted Average Cost of Capital",
-                key="wacc"
+                key=f"wacc_{st.session_state.reset_counter}"
             )
             st.session_state.assumptions['base']['wacc'] = wacc_pct / 100
         
@@ -834,7 +838,7 @@ def main():
                 step=0.5,
                 format="%.1fx",
                 help="Exit multiple for terminal value",
-                key="exit_mult"
+                key=f"exit_mult_{st.session_state.reset_counter}"
             )
             st.session_state.assumptions['base']['exit_multiple'] = exit_multiple
         
@@ -846,7 +850,7 @@ def main():
                 value=st.session_state.assumptions['base']['projection_years'],
                 step=1,
                 help="Number of years to project",
-                key="proj_years"
+                key=f"proj_years_{st.session_state.reset_counter}"
             )
             st.session_state.assumptions['base']['projection_years'] = projection_years
         
