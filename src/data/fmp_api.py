@@ -38,14 +38,20 @@ def fetch_company_profile(ticker: str, api_key: str) -> Optional[Dict]:
         
         profile = data[0]
         
-        # Return in consistent format
+        # Return in consistent format with ALL needed fields
         return {
             'symbol': profile.get('symbol'),
             'price': profile.get('price'),
             'companyName': profile.get('companyName'),
             'marketCap': profile.get('marketCap'),
             'sharesOutstanding': profile.get('sharesOutstanding'),
-            'exchange': profile.get('exchange')
+            'exchange': profile.get('exchange'),
+            'sector': profile.get('sector'),
+            'industry': profile.get('industry'),
+            'country': profile.get('country'),
+            'volume': profile.get('volume'),
+            'change': profile.get('change'),
+            'changePercentage': profile.get('changePercentage')
         }
     
     except requests.HTTPError as e:
