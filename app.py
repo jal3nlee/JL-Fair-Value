@@ -302,8 +302,8 @@ def main():
     st.session_state.assumptions['bear'] = {
         'revenue_growth': base['revenue_growth'] * 0.65,  # Wide dispersion for growth
         'terminal_growth': base['terminal_growth'] * 0.85,  # Tight range
-        'ebit_margin_initial': base['ebit_margin_initial'] * 0.80,  # Realistic margin compression
-        'ebit_margin_terminal': base['ebit_margin_terminal'] * 0.80,
+        'ebit_margin_initial': base['ebit_margin_initial'] * 0.85,  # Tighter margin compression
+        'ebit_margin_terminal': base['ebit_margin_terminal'] * 0.85,
         'capex_initial': base['capex_initial'] * 1.20,  # Higher reinvestment (less efficient)
         'capex_terminal': base['capex_terminal'] * 1.20,
         'da_ratio': base['da_ratio'] * 1.20,  # Higher D&A burden
@@ -318,8 +318,8 @@ def main():
     st.session_state.assumptions['bull'] = {
         'revenue_growth': base['revenue_growth'] * 1.25,  # Wide dispersion for growth
         'terminal_growth': base['terminal_growth'] * 1.15,  # Tight range
-        'ebit_margin_initial': base['ebit_margin_initial'] * 1.15,  # Realistic margin expansion
-        'ebit_margin_terminal': base['ebit_margin_terminal'] * 1.15,
+        'ebit_margin_initial': base['ebit_margin_initial'] * 1.10,  # Tighter margin expansion
+        'ebit_margin_terminal': base['ebit_margin_terminal'] * 1.10,
         'capex_initial': base['capex_initial'] * 0.90,  # Lower reinvestment (more efficient)
         'capex_terminal': base['capex_terminal'] * 0.90,
         'da_ratio': base['da_ratio'] * 0.90,  # Lower D&A burden
