@@ -352,8 +352,185 @@ def main():
         # Scenario selector
         scenario = st.radio("Scenario:", ["Bear", "Base", "Bull"], index=1, horizontal=True)
         
-        st.markdown("---")
-        st.markdown("*All input sliders will be migrated to this tab - only Base editable*")
+        st.info("📝 Only **Base** scenario is currently editable. Bear and Bull will use multipliers applied to Base values.")
+        
+        # Only show sliders for Base scenario
+        if scenario == "Base":
+            # Extract ratios for default values
+            ratios = financials['ratios']
+            
+            st.markdown("### Revenue & Margins")
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                revenue_growth_pct = st.slider(
+                    "Revenue Growth (Initial)",
+                    min_value=-10.0,
+                    max_value=100.0,
+                    value=float(ratios['revenue_cagr'] * 100) if ratios['revenue_cagr'] else 10.0,
+                    step=0.5,
+                    format="%.1f%%",
+                    help="Initial revenue growth rate",
+                    key="rev_growth"
+                )
+                
+                ebit_margin_pct = st.slider(
+                    "EBIT Margin (Initial)",
+                    min_value=0.0,
+                    max_value=100.0,
+                    value=float(ratios['ebit_margin'] * 100) if ratios['ebit_margin'] else 40.0,
+                    step=0.5,
+                    format="%.1f%%",
+                    help="Starting EBIT margin",
+                    key="ebit_init"
+                )
+            
+            with col2:
+                terminal_growth_pct = st.slider(
+                    "Terminal Growth",
+                    min_value=0.0,
+                    max_value=4.0,
+                    value=2.5,
+                    step=0.1,
+                    format="%.1f%%",
+                    help="Perpetual growth rate",
+                    key="term_growth"
+                )
+                
+                ebit_margin_terminal_pct = st.slider(
+                    "EBIT Margin (Terminal)",
+                    min_value=0.0,
+                    max_value=100.0,
+                    value=float(ratios['ebit_margin'] * 100) if ratios['ebit_margin'] else 40.0,
+                    step=0.5,
+                    format="%.1f%%",
+                    help="Long-term EBIT margin",
+                    key="ebit_term"
+                )
+            
+            st.markdown("---")
+            st.markdown("### CAPEX & Working Capital")
+            
+            col1, col2 = st.columns(2)
+            
+            default_capex = float(ratios['capex_ratio']) if ratios['capex_ratio'] else 0.15
+            
+            with col1:
+                capex_initial_pct = st.slider(
+                    "CAPEX Initial %",
+                    min_value=0.0,
+                    max_value=40.0,
+                    value=default_capex * 100,
+                    step=0.5,
+                    format="%.1f%%",
+                    help="Initial CAPEX as % of revenue",
+                    key="capex_init"
+                )
+                
+                da_ratio_pct = st.slider(
+                    "D&A % Revenue",
+                    min_value=1.0,
+                    max_value=40.0,
+                    value=float(ratios['da_ratio'] * 100) if ratios['da_ratio'] else 5.0,
+                    step=0.5,
+                    format="%.1f%%",
+                    help="Depreciation & Amortization as % of revenue",
+                    key="da_ratio"
+                )
+            
+            with col2:
+                capex_terminal_pct = st.slider(
+                    "CAPEX Terminal %",
+                    min_value=0.0,
+                    max_value=40.0,
+                    value=max(10.0, (default_capex - 0.03) * 100),
+                    step=0.5,
+                    format="%.1f%%",
+                    help="Terminal CAPEX as % of revenue",
+                    key="capex_term"
+                )
+                
+                wc_ratio_pct = st.slider(
+                    "Working Capital Ratio",
+                    min_value=-10.0,
+                    max_value=50.0,
+                    value=float(ratios['wc_ratio'] * 100) if ratios['wc_ratio'] else 5.0,
+                    step=0.5,
+                    format="%.1f%%",
+                    help="Change in NWC as % of revenue change",
+                    key="wc_ratio"
+                )
+            
+            st.markdown("---")
+            st.markdown("### Tax & Discount Rate")
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                tax_rate_pct = st.slider(
+                    "Tax Rate",
+                    min_value=1.0,
+                    max_value=40.0,
+                    value=float(ratios['tax_rate'] * 100) if ratios['tax_rate'] else 21.0,
+                    step=0.5,
+                    format="%.1f%%",
+                    help="Effective tax rate",
+                    key="tax_rate"
+                )
+            
+            with col2:
+                wacc_pct = st.slider(
+                    "WACC",
+                    min_value=5.0,
+                    max_value=15.0,
+                    value=8.5,
+                    step=0.1,
+                    format="%.1f%%",
+                    help="Weighted Average Cost of Capital",
+                    key="wacc"
+                )
+            
+            st.markdown("---")
+            st.markdown("### Exit Multiple & Projection Period")
+            
+            col1, col2 = st.columns(2)
+            
+            default_exit = calculate_default_exit_multiple(
+                ratios['ebit_margin'],
+                ratios['revenue_cagr']
+            )
+            
+            with col1:
+                exit_multiple = st.slider(
+                    "Exit Multiple (EBIT)",
+                    min_value=0.0,
+                    max_value=40.0,
+                    value=default_exit,
+                    step=0.5,
+                    format="%.1fx",
+                    help="Exit multiple for terminal value",
+                    key="exit_mult"
+                )
+            
+            with col2:
+                projection_years = st.slider(
+                    "Projection Years",
+                    min_value=5,
+                    max_value=10,
+                    value=7,
+                    step=1,
+                    help="Number of years to project",
+                    key="proj_years"
+                )
+            
+            st.markdown("---")
+            st.success("✓ Assumptions set. Navigate to other tabs to see results.")
+        
+        else:
+            # Bear or Bull scenario selected
+            st.warning(f"**{scenario}** scenario is not yet editable. Only Base scenario can be adjusted.")
+            st.markdown("*Bear and Bull multipliers coming soon...*")
     
     # Tab 4: Growth Paths
     with tabs[3]:
