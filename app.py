@@ -233,7 +233,7 @@ def main():
                     'financials': financials
                 }
                 
-                st.success(f"✓ Data loaded for {profile.get('companyName', ticker_input)}")
+                st.success(f"Data loaded for {profile.get('companyName', ticker_input)}")
         
         except FMPAPIError as e:
             st.error(f"API Error: {str(e)}")
@@ -345,7 +345,7 @@ def main():
         
         # Check if valuation has been run
         if not st.session_state.get('valuation_ready', False):
-            st.info("👉 Go to the **Assumptions** tab and click **'Run Valuation'** to see results.")
+            st.info("Go to the **Assumptions** tab and click **'Run Valuation'** to see results.")
             st.stop()
         
         # Get current price from profile
@@ -405,24 +405,30 @@ def main():
     
     # Tab 2: Financials
     with tabs[1]:
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.subheader("Historical Financials")
-            st.caption("Reported performance across revenue, profitability, and cash flow")
-            hist_df = create_historical_summary(financials)
-            st.dataframe(hist_df, use_container_width=True, hide_index=True)
-        
-        with col2:
-            st.subheader("Historical Averages")
-            st.caption("Three-year average growth and margins to guide forward assumptions")
-            ratios_df = create_ratios_summary(financials['ratios'])
-            st.dataframe(ratios_df, use_container_width=True, hide_index=True)
+        try:
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.subheader("Historical Financials")
+                st.caption("Reported performance across revenue, profitability, and cash flow")
+                hist_df = create_historical_summary(financials)
+                st.dataframe(hist_df, use_container_width=True, hide_index=True)
+            
+            with col2:
+                st.subheader("Historical Averages")
+                st.caption("Three-year average growth and margins to guide forward assumptions")
+                ratios_df = create_ratios_summary(financials['ratios'])
+                st.dataframe(ratios_df, use_container_width=True, hide_index=True)
+        except Exception as e:
+            st.error(f"Error in Financials tab: {str(e)}")
+            import traceback
+            st.code(traceback.format_exc())
     
     # Tab 3: Assumptions
     with tabs[2]:
-        # Assumptions Summary Table
-        st.markdown("### Current Assumptions")
+        try:
+            # Assumptions Summary Table
+            st.markdown("### Current Assumptions")
         
         assumptions_data = []
         base = st.session_state.assumptions['base']
@@ -628,10 +634,14 @@ def main():
         # Run Valuation Button
         col1, col2, col3 = st.columns([1, 1, 1])
         with col2:
-            if st.button("🚀 Run Valuation", type="primary", use_container_width=True):
+            if st.button("Run Valuation", type="primary", use_container_width=True):
                 # Trigger calculation
                 st.session_state.valuation_ready = True
-                st.success("✓ Valuation complete! Check Dashboard, Gordon Growth, and Exit Multiple tabs.")
+                st.success("Valuation complete! Check Dashboard, Gordon Growth, and Exit Multiple tabs.")
+        except Exception as e:
+            st.error(f"Error in Assumptions tab: {str(e)}")
+            import traceback
+            st.code(traceback.format_exc())
     
     # Tab 4: Growth Paths
     with tabs[3]:
