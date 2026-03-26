@@ -534,13 +534,6 @@ def main():
             base_value = dcf_results.get('base', {}).get('price_per_share_avg', 0) if dcf_results.get('base') else 0
             base_delta = ((base_value - current_price) / current_price * 100) if base_value > 0 and current_price > 0 else 0
             st.metric("Base", f"${base_value:.0f}", f"{base_delta:+.1f}%")
-            
-            # Implied Market Cap (only under Blended Base)
-            if base_value > 0:
-                shares = financials['ratios'].get('shares_diluted', 0)
-                implied_market_cap = base_value * shares
-                current_market_cap = profile.get('marketCap', 0)
-                st.caption(f"Implied Market Cap: ${implied_market_cap/1e12:.1f}T (vs ${current_market_cap/1e12:.1f}T current)")
         with col3:
             bull_value = dcf_results.get('bull', {}).get('price_per_share_avg', 0) if dcf_results.get('bull') else 0
             bull_delta = ((bull_value - current_price) / current_price * 100) if bull_value > 0 and current_price > 0 else 0
@@ -548,24 +541,19 @@ def main():
         
         st.markdown("---")
         
-        # Base Case Drivers (one-line summary)
+        # Base Case Drivers
+        st.markdown("#### Base Case Drivers")
         base_assumptions = st.session_state.assumptions['base']
-        st.markdown(f"**Base Case:** {base_assumptions['revenue_growth']*100:.1f}% growth | "
+        st.markdown(f"{base_assumptions['revenue_growth']*100:.1f}% growth | "
                    f"{base_assumptions['ebit_margin_terminal']*100:.1f}% margin | "
                    f"{base_assumptions['wacc']*100:.1f}% WACC")
         
-        # Valuation Range
-        if bear_value > 0 and bull_value > 0:
-            st.markdown(f"**Valuation Range:** ${bear_value:.0f} – ${bull_value:.0f}")
-        
         st.markdown("---")
         
-        # Method Insight
-        if gordon_base > 0 and exit_base > 0:
-            if exit_base > gordon_base * 1.1:
-                st.caption("💡 Exit Multiple method produces higher valuations than Gordon Growth")
-            elif gordon_base > exit_base * 1.1:
-                st.caption("💡 Gordon Growth method produces higher valuations than Exit Multiple")
+        # Valuation Range
+        if bear_value > 0 and bull_value > 0:
+            st.markdown("#### Valuation Range")
+            st.markdown(f"**${bear_value:.0f}** – **${bull_value:.0f}**")
     
     # Tab 3: Financials
     with tabs[2]:
