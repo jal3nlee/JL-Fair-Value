@@ -410,19 +410,35 @@ def main():
     
     # Tab 2: Financials
     with tabs[1]:
-        col1, col2 = st.columns(2)
+        st.write("DEBUG: Entered Financials tab")
+        st.write("DEBUG: financials exists?", 'financials' in locals())
         
-        with col1:
-            st.subheader("Historical Financials")
-            st.caption("Reported performance across revenue, profitability, and cash flow")
-            hist_df = create_historical_summary(financials)
-            st.dataframe(hist_df, use_container_width=True, hide_index=True)
+        if financials is None:
+            st.error("Financials data is None!")
+            st.stop()
         
-        with col2:
-            st.subheader("Historical Averages")
-            st.caption("Three-year average growth and margins to guide forward assumptions")
-            ratios_df = create_ratios_summary(financials['ratios'])
-            st.dataframe(ratios_df, use_container_width=True, hide_index=True)
+        try:
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.subheader("Historical Financials")
+                st.caption("Reported performance across revenue, profitability, and cash flow")
+                st.write("DEBUG: About to call create_historical_summary")
+                hist_df = create_historical_summary(financials)
+                st.write("DEBUG: Got hist_df:", hist_df.shape if hist_df is not None else "None")
+                st.dataframe(hist_df, use_container_width=True, hide_index=True)
+            
+            with col2:
+                st.subheader("Historical Averages")
+                st.caption("Three-year average growth and margins to guide forward assumptions")
+                st.write("DEBUG: About to call create_ratios_summary")
+                ratios_df = create_ratios_summary(financials['ratios'])
+                st.write("DEBUG: Got ratios_df:", ratios_df.shape if ratios_df is not None else "None")
+                st.dataframe(ratios_df, use_container_width=True, hide_index=True)
+        except Exception as e:
+            st.error(f"Error: {str(e)}")
+            import traceback
+            st.code(traceback.format_exc())
     
     # Tab 3: Assumptions
     with tabs[2]:
