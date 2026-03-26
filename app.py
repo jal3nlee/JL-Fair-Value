@@ -490,7 +490,7 @@ def main():
                 revenue_growth_pct = st.slider(
                     "rev_growth_slider",
                     min_value=-10.0,
-                    max_value=100.0,
+                    max_value=200.0,
                     value=st.session_state.assumptions['base']['revenue_growth'] * 100,
                     step=0.5,
                     format="%.1f%%",
@@ -502,7 +502,7 @@ def main():
                 revenue_growth_input = st.number_input(
                     "rev_growth_input_label",
                     min_value=-10.0,
-                    max_value=100.0,
+                    max_value=200.0,
                     value=st.session_state.assumptions['base']['revenue_growth'] * 100,
                     step=0.5,
                     format="%.1f",
