@@ -234,9 +234,6 @@ def main():
                 }
                 
                 # Debug: Show what was stored
-                st.write("DEBUG - Profile keys:", list(profile.keys()) if profile else "None")
-                st.write("DEBUG - Financials keys:", list(financials.keys()) if financials else "None")
-                st.write("DEBUG - Ratios:", financials.get('ratios') if financials else "None")
                 
                 st.success(f"Data loaded for {profile.get('companyName', ticker_input)}")
         
@@ -274,10 +271,8 @@ def main():
     # Render company header
     render_company_header(profile, financials)
     
-    st.write("DEBUG: After header render")
     
     # ALWAYS initialize assumptions (don't rely on session state check)
-    st.write("DEBUG: Initializing assumptions...")
     ratios = financials['ratios']
     default_capex = float(ratios['capex_ratio']) if ratios['capex_ratio'] else 0.15
     default_exit = calculate_default_exit_multiple(
@@ -285,7 +280,6 @@ def main():
         ratios['revenue_cagr']
     )
     
-    st.write("DEBUG: default_capex =", default_capex, "default_exit =", default_exit)
     
     st.session_state.assumptions = {
         'base': {
@@ -305,12 +299,10 @@ def main():
     }
     
     # ALWAYS update Bear and Bull based on current Base values (runs every time page renders)
-    st.write("DEBUG: About to update bear/bull from base...")
     base = st.session_state.assumptions['base']
     st.session_state.assumptions['bear'] = {k: v * 0.6 if k not in ['projection_years', 'exit_multiple', 'tax_rate'] else v for k, v in base.items()}
     st.session_state.assumptions['bull'] = {k: v * 1.3 if k not in ['projection_years', 'exit_multiple', 'tax_rate'] else v for k, v in base.items()}
     
-    st.write("DEBUG: About to create tabs...")
     
     # Create tabs
     tabs = st.tabs([
@@ -414,8 +406,6 @@ def main():
     
     # Tab 2: Financials
     with tabs[1]:
-        st.write("DEBUG: Entered Financials tab")
-        st.write("DEBUG: financials exists?", 'financials' in locals())
         
         if financials is None:
             st.error("Financials data is None!")
@@ -427,17 +417,13 @@ def main():
             with col1:
                 st.subheader("Historical Financials")
                 st.caption("Reported performance across revenue, profitability, and cash flow")
-                st.write("DEBUG: About to call create_historical_summary")
                 hist_df = create_historical_summary(financials)
-                st.write("DEBUG: Got hist_df:", hist_df.shape if hist_df is not None else "None")
                 st.dataframe(hist_df, use_container_width=True, hide_index=True)
             
             with col2:
                 st.subheader("Historical Averages")
                 st.caption("Three-year average growth and margins to guide forward assumptions")
-                st.write("DEBUG: About to call create_ratios_summary")
                 ratios_df = create_ratios_summary(financials['ratios'])
-                st.write("DEBUG: Got ratios_df:", ratios_df.shape if ratios_df is not None else "None")
                 st.dataframe(ratios_df, use_container_width=True, hide_index=True)
         except Exception as e:
             st.error(f"Error: {str(e)}")
