@@ -65,14 +65,21 @@ def create_historical_summary(financials: dict) -> pd.DataFrame:
         DataFrame with formatted historical data
     """
     years = financials['years']
+    revenues = financials['Revenue']
     data = []
     
     for i, year in enumerate(years):
-        rev = financials['Revenue'][i]
+        rev = revenues[i]
         ebit = financials['EBIT'][i]
         capex = financials['CAPEX'][i]
         da = financials['Depreciation'][i]
         nwc = financials['NWC'][i]
+        
+        # Calculate year-over-year revenue growth
+        if i < len(years) - 1 and revenues[i] and revenues[i + 1]:
+            rev_growth = (revenues[i] - revenues[i + 1]) / revenues[i + 1]
+        else:
+            rev_growth = None
         
         ebit_pct = (ebit / rev) if (ebit and rev) else None
         capex_pct = (abs(capex) / rev) if (capex and rev) else None
@@ -82,6 +89,7 @@ def create_historical_summary(financials: dict) -> pd.DataFrame:
             data.append({
                 'Year': year,
                 'Revenue': format_millions(rev),
+                'Rev Growth': '—',
                 'EBIT': '—',
                 'EBIT %': '—',
                 'CAPEX': '—',
@@ -93,6 +101,7 @@ def create_historical_summary(financials: dict) -> pd.DataFrame:
             data.append({
                 'Year': year,
                 'Revenue': format_millions(rev),
+                'Rev Growth': format_percentage(rev_growth),
                 'EBIT': format_millions(ebit),
                 'EBIT %': format_percentage(ebit_pct),
                 'CAPEX': format_millions(capex),
