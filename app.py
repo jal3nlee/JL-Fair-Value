@@ -345,50 +345,35 @@ def main():
         'projection_years': base['projection_years']  # Keep same
     }
     
-    # Run DCF for all 3 scenarios (only when assumptions change)
+    # Run DCF for all 3 scenarios
     if 'dcf_results' not in st.session_state:
         st.session_state.dcf_results = {}
     
-    if 'last_assumptions' not in st.session_state:
-        st.session_state.last_assumptions = None
-    
-    # Check if assumptions have changed since last DCF run
-    current_assumptions_hash = str(st.session_state.assumptions)
-    assumptions_changed = (st.session_state.last_assumptions != current_assumptions_hash)
-    
-    if assumptions_changed:
-        # Show DCF calculation status
-        dcf_errors = []
+    for scenario_name in ['bear', 'base', 'bull']:
+        # Map session state assumptions to dcf_model format
+        scenario_assumptions = st.session_state.assumptions[scenario_name]
+        dcf_assumptions = {
+            'revenue_growth': scenario_assumptions['revenue_growth'],
+            'ebit_margin': scenario_assumptions['ebit_margin_initial'],
+            'ebit_margin_terminal': scenario_assumptions['ebit_margin_terminal'],
+            'capex_ratio_initial': scenario_assumptions['capex_initial'],
+            'capex_ratio_terminal': scenario_assumptions['capex_terminal'],
+            'da_ratio': scenario_assumptions['da_ratio'],
+            'tax_rate': scenario_assumptions['tax_rate'],
+            'wc_ratio': scenario_assumptions['wc_ratio'],
+            'wacc': scenario_assumptions['wacc'],
+            'terminal_growth': scenario_assumptions['terminal_growth'],
+            'projection_years': scenario_assumptions['projection_years'],
+            'exit_multiple': scenario_assumptions['exit_multiple']
+        }
         
-        for scenario_name in ['bear', 'base', 'bull']:
-            # Map session state assumptions to dcf_model format
-            scenario_assumptions = st.session_state.assumptions[scenario_name]
-            dcf_assumptions = {
-                'revenue_growth': scenario_assumptions['revenue_growth'],
-                'ebit_margin': scenario_assumptions['ebit_margin_initial'],
-                'ebit_margin_terminal': scenario_assumptions['ebit_margin_terminal'],
-                'capex_ratio_initial': scenario_assumptions['capex_initial'],
-                'capex_ratio_terminal': scenario_assumptions['capex_terminal'],
-                'da_ratio': scenario_assumptions['da_ratio'],
-                'tax_rate': scenario_assumptions['tax_rate'],
-                'wc_ratio': scenario_assumptions['wc_ratio'],
-                'wacc': scenario_assumptions['wacc'],
-                'terminal_growth': scenario_assumptions['terminal_growth'],
-                'projection_years': scenario_assumptions['projection_years'],
-                'exit_multiple': scenario_assumptions['exit_multiple']
-            }
-            
-            # Run DCF
-            try:
-                result = dcf_model(financials, dcf_assumptions, scenario_name)
-                st.session_state.dcf_results[scenario_name] = result
-            except Exception as e:
-                error_msg = f"DCF {scenario_name}: {str(e)}"
-                dcf_errors.append(error_msg)
-                st.session_state.dcf_results[scenario_name] = None
-        
-        # Update last assumptions hash
-        st.session_state.last_assumptions = current_assumptions_hash
+        # Run DCF
+        try:
+            result = dcf_model(financials, dcf_assumptions, scenario_name)
+            st.session_state.dcf_results[scenario_name] = result
+        except Exception as e:
+            # Silently handle errors - don't display them
+            st.session_state.dcf_results[scenario_name] = None
     
     # Create tabs (don't show any errors or messages before tabs to avoid tab reset)
     tabs = st.tabs([
@@ -643,8 +628,8 @@ def main():
         # Extract ratios before buttons (needed for reset)
         ratios = financials['ratios']
         
-        # Editable Base Assumptions - Header with buttons inline
-        col1, col2, col3 = st.columns([2, 1, 1])
+        # Editable Base Assumptions - Header with button inline
+        col1, col2 = st.columns([3, 1])
         with col1:
             st.markdown("### Edit Base Case Assumptions")
         with col2:
@@ -682,10 +667,16 @@ def main():
                     'projection_years': 7
                 }
                 st.session_state.user_edited_assumptions = set()
+                
+                # Delete all slider widget keys to force them to recreate with new values
+                slider_keys = ['rev_growth', 'term_growth', 'ebit_init', 'ebit_term',
+                              'capex_init', 'capex_term', 'da_ratio', 'wc_ratio',
+                              'tax_rate', 'wacc', 'exit_mult', 'proj_years']
+                for key in slider_keys:
+                    if key in st.session_state:
+                        del st.session_state[key]
+                
                 st.rerun()
-        with col3:
-            if st.button("Update Assumptions", type="primary", use_container_width=True, key="update_btn"):
-                st.session_state.valuation_ready = True
         
         st.caption("Adjust the sliders below. Bear and Bull scenarios use multipliers of Base values.")
         
