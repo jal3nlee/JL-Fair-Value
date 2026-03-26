@@ -341,11 +341,6 @@ def main():
             
             st.markdown("---")
         
-        # Check if valuation has been run
-        if not st.session_state.get('valuation_ready', False):
-            st.info("Go to the **Assumptions** tab and click **'Run Valuation'** to see results.")
-            st.stop()
-        
         # Get current price from profile
         current_price = profile.get('price', 178.68)
         
