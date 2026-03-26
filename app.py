@@ -885,8 +885,7 @@ def main():
     
     # Tab 6: Gordon Growth
     with tabs[6]:
-        st.subheader("Gordon Growth (Perpetuity) Method")
-        st.caption("Terminal value calculated using perpetual growth formula")
+        st.caption("Terminal value using a perpetual growth model")
         
         # Get all scenario results
         bear_dcf = st.session_state.dcf_results.get('bear')
@@ -894,9 +893,7 @@ def main():
         bull_dcf = st.session_state.dcf_results.get('bull')
         
         if base_dcf:
-            # Fair Value Across Scenarios
-            st.markdown("#### Fair Value Per Share")
-            
+            # Scenarios
             col1, col2, col3 = st.columns(3)
             current_price = profile.get('price', 0)
             
@@ -917,8 +914,8 @@ def main():
             
             st.markdown("---")
             
-            # Base Case Drivers
-            st.markdown("##### Base Case Drivers")
+            # Base Case
+            st.markdown("##### Base Case")
             base_assumptions = st.session_state.assumptions['base']
             
             col1, col2, col3, col4 = st.columns(4)
@@ -927,7 +924,7 @@ def main():
             with col2:
                 st.metric("Terminal Growth", f"{base_assumptions['terminal_growth']*100:.1f}%")
             with col3:
-                st.metric("EBIT Margin (Term)", f"{base_assumptions['ebit_margin_terminal']*100:.1f}%")
+                st.metric("EBIT Margin (Terminal)", f"{base_assumptions['ebit_margin_terminal']*100:.1f}%")
             with col4:
                 st.metric("WACC", f"{base_assumptions['wacc']*100:.1f}%")
             
@@ -935,7 +932,7 @@ def main():
             
             # Sensitivity Analysis
             st.markdown("#### Sensitivity Analysis")
-            st.caption("Fair value at different WACC and Terminal Growth combinations (Base case)")
+            st.caption("Value at different WACC and terminal growth assumptions")
             
             # Get base case values
             base_assumptions = st.session_state.assumptions['base']
@@ -1012,8 +1009,7 @@ def main():
     
     # Tab 7: Exit Multiple
     with tabs[7]:
-        st.subheader("Exit Multiple Method")
-        st.caption("Terminal value calculated using exit EBIT multiple")
+        st.caption("Terminal value using an exit EBIT multiple")
         
         # Get all scenario results
         bear_dcf = st.session_state.dcf_results.get('bear')
@@ -1021,9 +1017,7 @@ def main():
         bull_dcf = st.session_state.dcf_results.get('bull')
         
         if base_dcf:
-            # Fair Value Across Scenarios
-            st.markdown("#### Fair Value Per Share")
-            
+            # Scenarios
             col1, col2, col3 = st.columns(3)
             current_price = profile.get('price', 0)
             
@@ -1044,15 +1038,15 @@ def main():
             
             st.markdown("---")
             
-            # Base Case Drivers
-            st.markdown("##### Base Case Drivers")
+            # Base Case
+            st.markdown("##### Base Case")
             base_assumptions = st.session_state.assumptions['base']
             
             col1, col2, col3, col4 = st.columns(4)
             with col1:
                 st.metric("Revenue Growth", f"{base_assumptions['revenue_growth']*100:.1f}%")
             with col2:
-                st.metric("EBIT Margin (Term)", f"{base_assumptions['ebit_margin_terminal']*100:.1f}%")
+                st.metric("EBIT Margin (Terminal)", f"{base_assumptions['ebit_margin_terminal']*100:.1f}%")
             with col3:
                 st.metric("WACC", f"{base_assumptions['wacc']*100:.1f}%")
             with col4:
@@ -1062,7 +1056,7 @@ def main():
             
             # Sensitivity Analysis
             st.markdown("#### Sensitivity Analysis")
-            st.caption("Fair value at different WACC and Exit Multiple combinations (Base case)")
+            st.caption("Value at different WACC and exit multiple assumptions")
             
             # Get base case values
             base_assumptions = st.session_state.assumptions['base']
@@ -1135,14 +1129,14 @@ def main():
     # Tab 8: Price Drivers
     with tabs[8]:
         st.subheader("What Does the Current Price Assume?")
-        st.caption("Reverse DCF showing what would need to be true for today's price to make sense based on your inputs.")
+        st.caption("What would need to be true for today's price to make sense based on your inputs")
         
         # Get current market price
         current_price = profile.get('price', 0)
         base_assumptions = st.session_state.assumptions['base']
         
         if current_price > 0:
-            st.markdown(f"**Current Price:** ${current_price:.2f} per share")
+            st.markdown(f"**Current Price:** ${current_price:.2f}")
             st.markdown("---")
             
             # Helper function to find implied value
@@ -1191,8 +1185,8 @@ def main():
                 
                 return mid_val
             
-            # BLOCK 1: If valuation assumptions hold
-            st.markdown("### If valuation assumptions hold")
+            # BLOCK 1: Holding valuation assumptions constant
+            st.markdown("### Holding valuation assumptions constant")
             
             with st.spinner("Calculating required revenue growth..."):
                 required_rev_growth = find_implied_value(
@@ -1205,12 +1199,13 @@ def main():
             
             if required_rev_growth is not None:
                 # Display required value prominently
-                st.metric("Revenue Growth Required", f"{required_rev_growth*100:.1f}%", 
+                st.metric("Required Revenue Growth", f"{required_rev_growth*100:.1f}%", 
                          label_visibility="visible")
                 
-                st.caption("Based on your current assumptions for margins, reinvestment, discount rate, and exit multiple.")
+                st.caption("Based on your current assumptions")
                 
                 # Show key assumptions in table
+                st.caption("**Assumptions held constant**")
                 assumptions_data = [
                     {'Assumption': 'Exit Multiple', 'Value': f"{base_assumptions['exit_multiple']:.1f}x"},
                     {'Assumption': 'WACC', 'Value': f"{base_assumptions['wacc']*100:.1f}%"},
@@ -1224,8 +1219,8 @@ def main():
             
             st.markdown("---")
             
-            # BLOCK 2: If operating assumptions hold
-            st.markdown("### If operating assumptions hold")
+            # BLOCK 2: Holding operating assumptions constant
+            st.markdown("### Holding operating assumptions constant")
             
             with st.spinner("Calculating required exit multiple..."):
                 required_exit_mult = find_implied_value(
@@ -1238,12 +1233,13 @@ def main():
             
             if required_exit_mult is not None:
                 # Display required value prominently
-                st.metric("Exit Multiple Required", f"{required_exit_mult:.1f}x",
+                st.metric("Required Exit Multiple", f"{required_exit_mult:.1f}x",
                          label_visibility="visible")
                 
-                st.caption("Based on your current assumptions for growth, margins, reinvestment, and discount rate.")
+                st.caption("Based on your current assumptions")
                 
                 # Show key assumptions in table
+                st.caption("**Assumptions held constant**")
                 assumptions_data = [
                     {'Assumption': 'Revenue Growth', 'Value': f"{base_assumptions['revenue_growth']*100:.1f}%"},
                     {'Assumption': 'WACC', 'Value': f"{base_assumptions['wacc']*100:.1f}%"},
