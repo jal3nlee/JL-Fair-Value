@@ -635,10 +635,6 @@ def main():
         # Extract ratios before buttons (needed for reset)
         ratios = financials['ratios']
         
-        # Initialize reset counter if not exists
-        if 'reset_counter' not in st.session_state:
-            st.session_state.reset_counter = 0
-        
         # Editable Base Assumptions - Header with buttons inline
         col1, col2, col3 = st.columns([2, 1, 1])
         with col1:
@@ -678,10 +674,6 @@ def main():
                     'projection_years': 7
                 }
                 st.session_state.user_edited_assumptions = set()
-                
-                # Increment counter to force widget recreation with new keys
-                st.session_state.reset_counter += 1
-                
                 st.rerun()
         with col3:
             if st.button("Update Assumptions", type="primary", use_container_width=True, key="update_btn"):
@@ -702,7 +694,7 @@ def main():
                 step=0.5,
                 format="%.1f%%",
                 help="Annualized revenue growth rate for forecast period",
-                key=f"rev_growth_{st.session_state.reset_counter}"
+                key="rev_growth"
             )
             st.session_state.assumptions['base']['revenue_growth'] = revenue_growth_pct / 100
             
@@ -714,7 +706,7 @@ def main():
                 step=0.5,
                 format="%.1f%%",
                 help="Starting EBIT margin",
-                key=f"ebit_init_{st.session_state.reset_counter}"
+                key="ebit_init"
             )
             st.session_state.assumptions['base']['ebit_margin_initial'] = ebit_margin_pct / 100
         
@@ -727,7 +719,7 @@ def main():
                 step=0.1,
                 format="%.1f%%",
                 help="Perpetual growth rate",
-                key=f"term_growth_{st.session_state.reset_counter}"
+                key="term_growth"
             )
             st.session_state.assumptions['base']['terminal_growth'] = terminal_growth_pct / 100
             
@@ -739,7 +731,7 @@ def main():
                 step=0.5,
                 format="%.1f%%",
                 help="Long-term EBIT margin",
-                key=f"ebit_term_{st.session_state.reset_counter}"
+                key="ebit_term"
             )
             st.session_state.assumptions['base']['ebit_margin_terminal'] = ebit_margin_terminal_pct / 100
         
@@ -757,7 +749,7 @@ def main():
                 step=0.5,
                 format="%.1f%%",
                 help="Initial CAPEX as % of revenue",
-                key=f"capex_init_{st.session_state.reset_counter}"
+                key="capex_init"
             )
             st.session_state.assumptions['base']['capex_initial'] = capex_initial_pct / 100
             
@@ -769,7 +761,7 @@ def main():
                 step=0.5,
                 format="%.1f%%",
                 help="Depreciation & Amortization as % of revenue",
-                key=f"da_ratio_{st.session_state.reset_counter}"
+                key="da_ratio"
             )
             st.session_state.assumptions['base']['da_ratio'] = da_ratio_pct / 100
         
@@ -782,7 +774,7 @@ def main():
                 step=0.5,
                 format="%.1f%%",
                 help="Terminal CAPEX as % of revenue",
-                key=f"capex_term_{st.session_state.reset_counter}"
+                key="capex_term"
             )
             st.session_state.assumptions['base']['capex_terminal'] = capex_terminal_pct / 100
             
@@ -794,7 +786,7 @@ def main():
                 step=0.5,
                 format="%.1f%%",
                 help="Change in NWC as % of revenue change",
-                key=f"wc_ratio_{st.session_state.reset_counter}"
+                key="wc_ratio"
             )
             st.session_state.assumptions['base']['wc_ratio'] = wc_ratio_pct / 100
         
@@ -812,7 +804,7 @@ def main():
                 step=0.5,
                 format="%.1f%%",
                 help="Effective tax rate",
-                key=f"tax_rate_{st.session_state.reset_counter}"
+                key="tax_rate"
             )
             st.session_state.assumptions['base']['tax_rate'] = tax_rate_pct / 100
         
@@ -825,7 +817,7 @@ def main():
                 step=0.1,
                 format="%.1f%%",
                 help="Weighted Average Cost of Capital",
-                key=f"wacc_{st.session_state.reset_counter}"
+                key="wacc"
             )
             st.session_state.assumptions['base']['wacc'] = wacc_pct / 100
         
@@ -843,7 +835,7 @@ def main():
                 step=0.5,
                 format="%.1fx",
                 help="Exit multiple for terminal value",
-                key=f"exit_mult_{st.session_state.reset_counter}"
+                key="exit_mult"
             )
             st.session_state.assumptions['base']['exit_multiple'] = exit_multiple
         
@@ -855,7 +847,7 @@ def main():
                 value=st.session_state.assumptions['base']['projection_years'],
                 step=1,
                 help="Number of years to project",
-                key=f"proj_years_{st.session_state.reset_counter}"
+                key="proj_years"
             )
             st.session_state.assumptions['base']['projection_years'] = projection_years
         
