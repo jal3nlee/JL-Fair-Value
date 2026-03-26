@@ -1017,7 +1017,171 @@ def main():
     
     # Tab 8: Implied
     with tabs[7]:
-        st.markdown("*Reverse DCF analysis showing what the market is pricing in*")
+        st.subheader("Implied Valuation (Reverse DCF)")
+        st.caption("What assumptions is the market pricing in at the current share price?")
+        
+        # Get current market price
+        current_price = profile.get('price', 0)
+        base_assumptions = st.session_state.assumptions['base']
+        
+        if current_price > 0:
+            st.markdown(f"### At **${current_price:.2f}/share**, the market implies:")
+            
+            # Solve for implied metrics
+            # We'll solve for: Revenue Growth, Exit Multiple, Terminal Growth
+            
+            # Helper function to find implied value
+            def find_implied_value(param_name, min_val, max_val, target_price, assumptions_template):
+                """Binary search to find parameter value that gets us to target price"""
+                tolerance = 0.01  # $0.01
+                max_iterations = 50
+                
+                for _ in range(max_iterations):
+                    mid_val = (min_val + max_val) / 2
+                    
+                    # Create temp assumptions
+                    temp_assumptions = assumptions_template.copy()
+                    temp_assumptions[param_name] = mid_val
+                    
+                    # Map to DCF format
+                    dcf_temp = {
+                        'revenue_growth': temp_assumptions['revenue_growth'],
+                        'ebit_margin': temp_assumptions['ebit_margin_initial'],
+                        'ebit_margin_terminal': temp_assumptions['ebit_margin_terminal'],
+                        'capex_ratio_initial': temp_assumptions['capex_initial'],
+                        'capex_ratio_terminal': temp_assumptions['capex_terminal'],
+                        'da_ratio': temp_assumptions['da_ratio'],
+                        'tax_rate': temp_assumptions['tax_rate'],
+                        'wc_ratio': temp_assumptions['wc_ratio'],
+                        'wacc': temp_assumptions['wacc'],
+                        'terminal_growth': temp_assumptions['terminal_growth'],
+                        'projection_years': temp_assumptions['projection_years'],
+                        'exit_multiple': temp_assumptions['exit_multiple']
+                    }
+                    
+                    try:
+                        result = dcf_model(financials, dcf_temp, 'implied')
+                        # Use blended average
+                        calculated_price = result.get('price_per_share_avg', 0)
+                        
+                        if abs(calculated_price - target_price) < tolerance:
+                            return mid_val
+                        
+                        if calculated_price < target_price:
+                            min_val = mid_val
+                        else:
+                            max_val = mid_val
+                    except:
+                        return None
+                
+                return mid_val
+            
+            # Solve for implied Revenue Growth
+            implied_rev_growth = find_implied_value(
+                'revenue_growth',
+                -0.10,  # -10%
+                2.0,    # 200%
+                current_price,
+                base_assumptions.copy()
+            )
+            
+            # Solve for implied Exit Multiple
+            implied_exit_mult = find_implied_value(
+                'exit_multiple',
+                5,
+                50,
+                current_price,
+                base_assumptions.copy()
+            )
+            
+            # Solve for implied Terminal Growth
+            implied_term_growth = find_implied_value(
+                'terminal_growth',
+                0.005,  # 0.5%
+                min(0.045, base_assumptions['wacc'] - 0.001),  # Cap below WACC
+                current_price,
+                base_assumptions.copy()
+            )
+            
+            # Display headline metrics
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                if implied_rev_growth:
+                    st.metric("Revenue Growth", f"{implied_rev_growth*100:.1f}%")
+                else:
+                    st.metric("Revenue Growth", "N/A")
+            
+            with col2:
+                if implied_exit_mult:
+                    st.metric("Exit Multiple", f"{implied_exit_mult:.1f}x")
+                else:
+                    st.metric("Exit Multiple", "N/A")
+            
+            with col3:
+                if implied_term_growth:
+                    st.metric("Terminal Growth", f"{implied_term_growth*100:.1f}%")
+                else:
+                    st.metric("Terminal Growth", "N/A")
+            
+            st.markdown("---")
+            
+            # Comparison Table
+            st.markdown("#### Your Base Case vs Market Implied")
+            
+            comparison_data = []
+            
+            if implied_rev_growth:
+                comparison_data.append({
+                    'Assumption': 'Revenue Growth',
+                    'Your Base Case': f"{base_assumptions['revenue_growth']*100:.1f}%",
+                    'Market Implied': f"{implied_rev_growth*100:.1f}%"
+                })
+            
+            if implied_term_growth:
+                comparison_data.append({
+                    'Assumption': 'Terminal Growth',
+                    'Your Base Case': f"{base_assumptions['terminal_growth']*100:.1f}%",
+                    'Market Implied': f"{implied_term_growth*100:.1f}%"
+                })
+            
+            if implied_exit_mult:
+                comparison_data.append({
+                    'Assumption': 'Exit Multiple',
+                    'Your Base Case': f"{base_assumptions['exit_multiple']:.1f}x",
+                    'Market Implied': f"{implied_exit_mult:.1f}x"
+                })
+            
+            if comparison_data:
+                comp_df = pd.DataFrame(comparison_data)
+                st.dataframe(comp_df, use_container_width=True, hide_index=True)
+                
+                # Interpretation
+                st.markdown("---")
+                st.markdown("##### Interpretation")
+                
+                # Build interpretation text
+                interpretation = []
+                
+                if implied_rev_growth and implied_rev_growth > base_assumptions['revenue_growth'] * 1.1:
+                    interpretation.append("higher revenue growth")
+                elif implied_rev_growth and implied_rev_growth < base_assumptions['revenue_growth'] * 0.9:
+                    interpretation.append("lower revenue growth")
+                
+                if implied_exit_mult and implied_exit_mult > base_assumptions['exit_multiple'] * 1.1:
+                    interpretation.append("higher exit multiples")
+                elif implied_exit_mult and implied_exit_mult < base_assumptions['exit_multiple'] * 0.9:
+                    interpretation.append("lower exit multiples")
+                
+                if interpretation:
+                    interp_text = " and ".join(interpretation)
+                    if implied_rev_growth and implied_rev_growth > base_assumptions['revenue_growth']:
+                        st.info(f"The market is pricing in **{interp_text}** than your base case, suggesting more optimistic expectations.")
+                    else:
+                        st.info(f"The market is pricing in **{interp_text}** than your base case, suggesting more conservative expectations.")
+            else:
+                st.warning("Unable to calculate implied assumptions. Try adjusting your base case.")
+        else:
+            st.warning("No current price available to calculate implied assumptions.")
 
 
 if __name__ == "__main__":
