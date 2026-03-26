@@ -523,7 +523,7 @@ def main():
         
         st.markdown("---")
         
-        # Blended Average
+        # Blended
         st.markdown("**Blended**")
         col1, col2, col3 = st.columns(3)
         with col1:
@@ -541,27 +541,12 @@ def main():
         
         st.markdown("---")
         
-        # Base Case Drivers
-        st.markdown("#### Base Case Drivers")
+        # Base Case
+        st.markdown("#### Base Case")
         base_assumptions = st.session_state.assumptions['base']
         st.markdown(f"{base_assumptions['revenue_growth']*100:.1f}% growth | "
                    f"{base_assumptions['ebit_margin_terminal']*100:.1f}% margin | "
                    f"{base_assumptions['wacc']*100:.1f}% WACC")
-        
-        # Calculate terminal value percentage for Base case (blended)
-        base_result = dcf_results.get('base', {})
-        if base_result:
-            sum_pv_fcf = base_result.get('sum_pv_fcf', 0)
-            pv_tv_gordon = base_result.get('pv_terminal_gordon', 0)
-            pv_tv_exit = base_result.get('pv_terminal_exit', 0)
-            
-            # Average terminal value across both methods
-            pv_tv_avg = (pv_tv_gordon + pv_tv_exit) / 2
-            total_pv = sum_pv_fcf + pv_tv_avg
-            
-            if total_pv > 0:
-                terminal_pct = (pv_tv_avg / total_pv) * 100
-                st.markdown(f"~{terminal_pct:.0f}% of value from terminal assumptions")
     
     # Tab 3: Financials
     with tabs[2]:
