@@ -711,35 +711,21 @@ def main():
             projection_years
         )
         
-        # Create DataFrames for charts
+        # Create combined table
         years = list(range(1, projection_years + 1))
         
-        # Revenue Growth Chart
-        st.subheader("Revenue Growth Path")
-        st.caption("How revenue growth declines from initial to terminal rate")
-        revenue_df = pd.DataFrame({
+        path_data = {
             'Year': years,
-            'Growth Rate': [r * 100 for r in revenue_path]  # Convert to percentage
-        })
-        st.line_chart(revenue_df.set_index('Year'))
+            'Revenue Growth': [f"{round(r * 100 * 2) / 2:.1f}%" for r in revenue_path],
+            'EBIT Margin': [f"{round(m * 100 * 2) / 2:.1f}%" for m in ebit_margin_path],
+            'CAPEX % Revenue': [f"{round(c * 100 * 2) / 2:.1f}%" for c in capex_path]
+        }
         
-        # EBIT Margin Chart
-        st.subheader("EBIT Margin Path")
-        st.caption("Margin transition from initial to terminal level")
-        margin_df = pd.DataFrame({
-            'Year': years,
-            'EBIT Margin': [m * 100 for m in ebit_margin_path]  # Convert to percentage
-        })
-        st.line_chart(margin_df.set_index('Year'))
+        path_df = pd.DataFrame(path_data)
         
-        # CAPEX Path Chart
-        st.subheader("CAPEX % of Revenue Path")
-        st.caption("CAPEX ratio fade from initial to terminal")
-        capex_df = pd.DataFrame({
-            'Year': years,
-            'CAPEX %': [c * 100 for c in capex_path]  # Convert to percentage
-        })
-        st.line_chart(capex_df.set_index('Year'))
+        st.subheader("Assumption Paths Over Projection Period")
+        st.caption("How key assumptions transition from initial to terminal values")
+        st.dataframe(path_df, use_container_width=True, hide_index=True)
     
     # Tab 5: Forecast
     with tabs[4]:
