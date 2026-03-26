@@ -669,6 +669,15 @@ def main():
                     'projection_years': 7
                 }
                 st.session_state.user_edited_assumptions = set()
+                
+                # Clear all slider keys to force Streamlit to recreate them with new values
+                slider_keys = ['rev_growth', 'term_growth', 'ebit_init', 'ebit_term', 
+                              'capex_init', 'capex_term', 'da_ratio', 'wc_ratio', 
+                              'tax_rate', 'wacc', 'exit_mult', 'proj_years']
+                for key in slider_keys:
+                    if key in st.session_state:
+                        del st.session_state[key]
+                
                 st.rerun()
         with col3:
             if st.button("Update Assumptions", type="primary", use_container_width=True, key="update_btn"):
