@@ -274,14 +274,19 @@ def main():
     # Render company header
     render_company_header(profile, financials)
     
+    st.write("DEBUG: After header render")
+    
     # Initialize session state for assumptions BEFORE creating tabs
     if 'assumptions' not in st.session_state:
+        st.write("DEBUG: Initializing assumptions...")
         ratios = financials['ratios']
         default_capex = float(ratios['capex_ratio']) if ratios['capex_ratio'] else 0.15
         default_exit = calculate_default_exit_multiple(
             ratios['ebit_margin'],
             ratios['revenue_cagr']
         )
+        
+        st.write("DEBUG: default_capex =", default_capex, "default_exit =", default_exit)
         
         st.session_state.assumptions = {
             'base': {
@@ -304,9 +309,12 @@ def main():
         st.session_state.assumptions['bull'] = {}
     
     # ALWAYS update Bear and Bull based on current Base values (runs every time page renders)
+    st.write("DEBUG: About to update bear/bull from base...")
     base = st.session_state.assumptions['base']
     st.session_state.assumptions['bear'] = {k: v * 0.6 if k not in ['projection_years', 'exit_multiple', 'tax_rate'] else v for k, v in base.items()}
     st.session_state.assumptions['bull'] = {k: v * 1.3 if k not in ['projection_years', 'exit_multiple', 'tax_rate'] else v for k, v in base.items()}
+    
+    st.write("DEBUG: About to create tabs...")
     
     # Create tabs
     tabs = st.tabs([
