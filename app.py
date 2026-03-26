@@ -300,6 +300,35 @@ def main():
     st.session_state.assumptions['bear'] = {k: v * 0.6 if k not in ['projection_years', 'exit_multiple', 'tax_rate'] else v for k, v in base.items()}
     st.session_state.assumptions['bull'] = {k: v * 1.3 if k not in ['projection_years', 'exit_multiple', 'tax_rate'] else v for k, v in base.items()}
     
+    # Run DCF for all 3 scenarios
+    if 'dcf_results' not in st.session_state:
+        st.session_state.dcf_results = {}
+    
+    for scenario_name in ['bear', 'base', 'bull']:
+        # Map session state assumptions to dcf_model format
+        scenario_assumptions = st.session_state.assumptions[scenario_name]
+        dcf_assumptions = {
+            'revenue_growth': scenario_assumptions['revenue_growth'],
+            'ebit_margin': scenario_assumptions['ebit_margin_initial'],
+            'ebit_margin_terminal': scenario_assumptions['ebit_margin_terminal'],
+            'capex_ratio_initial': scenario_assumptions['capex_initial'],
+            'capex_ratio_terminal': scenario_assumptions['capex_terminal'],
+            'da_ratio': scenario_assumptions['da_ratio'],
+            'tax_rate': scenario_assumptions['tax_rate'],
+            'wc_ratio': scenario_assumptions['wc_ratio'],
+            'wacc': scenario_assumptions['wacc'],
+            'terminal_growth': scenario_assumptions['terminal_growth'],
+            'projection_years': scenario_assumptions['projection_years'],
+            'exit_multiple': scenario_assumptions['exit_multiple']
+        }
+        
+        # Run DCF
+        try:
+            result = dcf_model(financials, dcf_assumptions, scenario_name)
+            st.session_state.dcf_results[scenario_name] = result
+        except Exception as e:
+            st.error(f"DCF calculation failed for {scenario_name}: {str(e)}")
+            st.session_state.dcf_results[scenario_name] = None
     
     # Create tabs
     tabs = st.tabs([
@@ -344,21 +373,24 @@ def main():
         # Get current price from profile
         current_price = profile.get('price', 178.68)
         
+        # Extract DCF results
+        dcf_results = st.session_state.get('dcf_results', {})
+        
         # Gordon Growth Method
         st.markdown("**Gordon Growth Method**")
         col1, col2, col3 = st.columns(3)
         with col1:
-            gordon_bear = 128
-            gordon_bear_delta = ((gordon_bear - current_price) / current_price) * 100
-            st.metric("Bear", f"${gordon_bear}/share", f"{gordon_bear_delta:+.1f}%")
+            gordon_bear = dcf_results.get('bear', {}).get('perpetuity_value_per_share', 0) if dcf_results.get('bear') else 0
+            gordon_bear_delta = ((gordon_bear - current_price) / current_price) * 100 if gordon_bear > 0 else 0
+            st.metric("Bear", f"${gordon_bear:.0f}/share", f"{gordon_bear_delta:+.1f}%")
         with col2:
-            gordon_base = 271
-            gordon_base_delta = ((gordon_base - current_price) / current_price) * 100
-            st.metric("Base", f"${gordon_base}/share", f"{gordon_base_delta:+.1f}%")
+            gordon_base = dcf_results.get('base', {}).get('perpetuity_value_per_share', 0) if dcf_results.get('base') else 0
+            gordon_base_delta = ((gordon_base - current_price) / current_price) * 100 if gordon_base > 0 else 0
+            st.metric("Base", f"${gordon_base:.0f}/share", f"{gordon_base_delta:+.1f}%")
         with col3:
-            gordon_bull = 448
-            gordon_bull_delta = ((gordon_bull - current_price) / current_price) * 100
-            st.metric("Bull", f"${gordon_bull}/share", f"{gordon_bull_delta:+.1f}%")
+            gordon_bull = dcf_results.get('bull', {}).get('perpetuity_value_per_share', 0) if dcf_results.get('bull') else 0
+            gordon_bull_delta = ((gordon_bull - current_price) / current_price) * 100 if gordon_bull > 0 else 0
+            st.metric("Bull", f"${gordon_bull:.0f}/share", f"{gordon_bull_delta:+.1f}%")
         
         st.markdown("---")
         
@@ -366,17 +398,17 @@ def main():
         st.markdown("**Exit Multiple Method**")
         col1, col2, col3 = st.columns(3)
         with col1:
-            exit_bear = 267
-            exit_bear_delta = ((exit_bear - current_price) / current_price) * 100
-            st.metric("Bear", f"${exit_bear}/share", f"{exit_bear_delta:+.1f}%")
+            exit_bear = dcf_results.get('bear', {}).get('exit_multiple_value_per_share', 0) if dcf_results.get('bear') else 0
+            exit_bear_delta = ((exit_bear - current_price) / current_price) * 100 if exit_bear > 0 else 0
+            st.metric("Bear", f"${exit_bear:.0f}/share", f"{exit_bear_delta:+.1f}%")
         with col2:
-            exit_base = 572
-            exit_base_delta = ((exit_base - current_price) / current_price) * 100
-            st.metric("Base", f"${exit_base}/share", f"{exit_base_delta:+.1f}%")
+            exit_base = dcf_results.get('base', {}).get('exit_multiple_value_per_share', 0) if dcf_results.get('base') else 0
+            exit_base_delta = ((exit_base - current_price) / current_price) * 100 if exit_base > 0 else 0
+            st.metric("Base", f"${exit_base:.0f}/share", f"{exit_base_delta:+.1f}%")
         with col3:
-            exit_bull = 946
-            exit_bull_delta = ((exit_bull - current_price) / current_price) * 100
-            st.metric("Bull", f"${exit_bull}/share", f"{exit_bull_delta:+.1f}%")
+            exit_bull = dcf_results.get('bull', {}).get('exit_multiple_value_per_share', 0) if dcf_results.get('bull') else 0
+            exit_bull_delta = ((exit_bull - current_price) / current_price) * 100 if exit_bull > 0 else 0
+            st.metric("Bull", f"${exit_bull:.0f}/share", f"{exit_bull_delta:+.1f}%")
         
         st.markdown("---")
         
@@ -384,17 +416,17 @@ def main():
         st.markdown("**Blended Average**")
         col1, col2, col3 = st.columns(3)
         with col1:
-            bear_value = 197
-            bear_delta = ((bear_value - current_price) / current_price) * 100
-            st.metric("Bear", f"${bear_value}/share", f"{bear_delta:+.1f}%")
+            bear_value = dcf_results.get('bear', {}).get('blended_value_per_share', 0) if dcf_results.get('bear') else 0
+            bear_delta = ((bear_value - current_price) / current_price) * 100 if bear_value > 0 else 0
+            st.metric("Bear", f"${bear_value:.0f}/share", f"{bear_delta:+.1f}%")
         with col2:
-            base_value = 422
-            base_delta = ((base_value - current_price) / current_price) * 100
-            st.metric("Base", f"${base_value}/share", f"{base_delta:+.1f}%")
+            base_value = dcf_results.get('base', {}).get('blended_value_per_share', 0) if dcf_results.get('base') else 0
+            base_delta = ((base_value - current_price) / current_price) * 100 if base_value > 0 else 0
+            st.metric("Base", f"${base_value:.0f}/share", f"{base_delta:+.1f}%")
         with col3:
-            bull_value = 697
-            bull_delta = ((bull_value - current_price) / current_price) * 100
-            st.metric("Bull", f"${bull_value}/share", f"{bull_delta:+.1f}%")
+            bull_value = dcf_results.get('bull', {}).get('blended_value_per_share', 0) if dcf_results.get('bull') else 0
+            bull_delta = ((bull_value - current_price) / current_price) * 100 if bull_value > 0 else 0
+            st.metric("Bull", f"${bull_value:.0f}/share", f"{bull_delta:+.1f}%")
     
     # Tab 2: Financials
     with tabs[1]:
