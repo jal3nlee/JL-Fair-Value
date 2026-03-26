@@ -345,35 +345,50 @@ def main():
         'projection_years': base['projection_years']  # Keep same
     }
     
-    # Run DCF for all 3 scenarios
+    # Run DCF for all 3 scenarios (only when assumptions change)
     if 'dcf_results' not in st.session_state:
         st.session_state.dcf_results = {}
     
-    for scenario_name in ['bear', 'base', 'bull']:
-        # Map session state assumptions to dcf_model format
-        scenario_assumptions = st.session_state.assumptions[scenario_name]
-        dcf_assumptions = {
-            'revenue_growth': scenario_assumptions['revenue_growth'],
-            'ebit_margin': scenario_assumptions['ebit_margin_initial'],
-            'ebit_margin_terminal': scenario_assumptions['ebit_margin_terminal'],
-            'capex_ratio_initial': scenario_assumptions['capex_initial'],
-            'capex_ratio_terminal': scenario_assumptions['capex_terminal'],
-            'da_ratio': scenario_assumptions['da_ratio'],
-            'tax_rate': scenario_assumptions['tax_rate'],
-            'wc_ratio': scenario_assumptions['wc_ratio'],
-            'wacc': scenario_assumptions['wacc'],
-            'terminal_growth': scenario_assumptions['terminal_growth'],
-            'projection_years': scenario_assumptions['projection_years'],
-            'exit_multiple': scenario_assumptions['exit_multiple']
-        }
+    if 'last_assumptions' not in st.session_state:
+        st.session_state.last_assumptions = None
+    
+    # Check if assumptions have changed since last DCF run
+    current_assumptions_hash = str(st.session_state.assumptions)
+    assumptions_changed = (st.session_state.last_assumptions != current_assumptions_hash)
+    
+    if assumptions_changed:
+        # Show DCF calculation status
+        dcf_errors = []
         
-        # Run DCF
-        try:
-            result = dcf_model(financials, dcf_assumptions, scenario_name)
-            st.session_state.dcf_results[scenario_name] = result
-        except Exception as e:
-            # Silently handle errors - don't display them
-            st.session_state.dcf_results[scenario_name] = None
+        for scenario_name in ['bear', 'base', 'bull']:
+            # Map session state assumptions to dcf_model format
+            scenario_assumptions = st.session_state.assumptions[scenario_name]
+            dcf_assumptions = {
+                'revenue_growth': scenario_assumptions['revenue_growth'],
+                'ebit_margin': scenario_assumptions['ebit_margin_initial'],
+                'ebit_margin_terminal': scenario_assumptions['ebit_margin_terminal'],
+                'capex_ratio_initial': scenario_assumptions['capex_initial'],
+                'capex_ratio_terminal': scenario_assumptions['capex_terminal'],
+                'da_ratio': scenario_assumptions['da_ratio'],
+                'tax_rate': scenario_assumptions['tax_rate'],
+                'wc_ratio': scenario_assumptions['wc_ratio'],
+                'wacc': scenario_assumptions['wacc'],
+                'terminal_growth': scenario_assumptions['terminal_growth'],
+                'projection_years': scenario_assumptions['projection_years'],
+                'exit_multiple': scenario_assumptions['exit_multiple']
+            }
+            
+            # Run DCF
+            try:
+                result = dcf_model(financials, dcf_assumptions, scenario_name)
+                st.session_state.dcf_results[scenario_name] = result
+            except Exception as e:
+                error_msg = f"DCF {scenario_name}: {str(e)}"
+                dcf_errors.append(error_msg)
+                st.session_state.dcf_results[scenario_name] = None
+        
+        # Update last assumptions hash
+        st.session_state.last_assumptions = current_assumptions_hash
     
     # Create tabs (don't show any errors or messages before tabs to avoid tab reset)
     tabs = st.tabs([
