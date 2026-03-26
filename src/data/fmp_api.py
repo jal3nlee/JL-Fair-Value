@@ -266,7 +266,7 @@ def map_fmp_to_dcf_format(fmp_data: Dict) -> Dict:
         values = []
         for item in data_list:
             value = item.get(field)
-            if value is not None and value != 0:
+            if value is not None:
                 values.append(float(value))
             else:
                 values.append(None)
@@ -414,7 +414,9 @@ def calculate_ratios_from_fmp(
     ebit_margins = [
         ebit[i] / revenue[i] 
         for i in range(n_years_avg) 
-        if ebit[i] and revenue[i] and revenue[i] > 0
+        if (ebit[i] is not None and 
+            revenue[i] is not None and 
+            revenue[i] > 0)
     ]
     ebit_margin_avg = np.mean(ebit_margins) if ebit_margins else None
     
@@ -422,7 +424,9 @@ def calculate_ratios_from_fmp(
     capex_ratios = [
         abs(capex[i]) / revenue[i] 
         for i in range(n_years_avg) 
-        if capex[i] and revenue[i] and revenue[i] > 0
+        if (capex[i] is not None and 
+            revenue[i] is not None and 
+            revenue[i] > 0)
     ]
     capex_ratio_avg = np.mean(capex_ratios) if capex_ratios else None
     
@@ -430,7 +434,9 @@ def calculate_ratios_from_fmp(
     da_ratios = [
         depreciation[i] / revenue[i] 
         for i in range(n_years_avg) 
-        if depreciation[i] and revenue[i] and revenue[i] > 0
+        if (depreciation[i] is not None and 
+            revenue[i] is not None and 
+            revenue[i] > 0)
     ]
     da_ratio_avg = np.mean(da_ratios) if da_ratios else None
     
@@ -438,7 +444,9 @@ def calculate_ratios_from_fmp(
     tax_rates = [
         income_tax[i] / pretax_income[i] 
         for i in range(n_years_avg) 
-        if income_tax[i] and pretax_income[i] and pretax_income[i] > 0
+        if (income_tax[i] is not None and 
+            pretax_income[i] is not None and 
+            pretax_income[i] > 0)
     ]
     tax_rate_avg = np.mean(tax_rates) if tax_rates else None
     
@@ -449,7 +457,12 @@ def calculate_ratios_from_fmp(
         nwc_prev = nwc[i + 1]
         rev_curr = revenue[i]
         rev_prev = revenue[i + 1]
-        if nwc_curr and nwc_prev and rev_curr and rev_prev and rev_curr > 0 and rev_prev > 0:
+        if (nwc_curr is not None and 
+            nwc_prev is not None and 
+            rev_curr is not None and 
+            rev_prev is not None and 
+            rev_curr > 0 and 
+            rev_prev > 0):
             delta_nwc = nwc_curr - nwc_prev
             delta_rev = rev_curr - rev_prev
             if delta_rev != 0:
