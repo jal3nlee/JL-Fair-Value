@@ -1092,6 +1092,16 @@ def main():
                          label_visibility="visible")
                 
                 st.caption("Based on your current assumptions for margins, reinvestment, discount rate, and exit multiple.")
+                
+                # Show key assumptions in table
+                assumptions_data = [
+                    {'Assumption': 'Exit Multiple', 'Value': f"{base_assumptions['exit_multiple']:.1f}x"},
+                    {'Assumption': 'WACC', 'Value': f"{base_assumptions['wacc']*100:.1f}%"},
+                    {'Assumption': 'Terminal EBIT Margin', 'Value': f"{base_assumptions['ebit_margin_terminal']*100:.1f}%"},
+                    {'Assumption': 'Terminal Growth', 'Value': f"{base_assumptions['terminal_growth']*100:.1f}%"}
+                ]
+                assumptions_df = pd.DataFrame(assumptions_data)
+                st.dataframe(assumptions_df, use_container_width=True, hide_index=True)
             else:
                 st.warning("Unable to solve for required revenue growth within reasonable range.")
             
@@ -1115,6 +1125,16 @@ def main():
                          label_visibility="visible")
                 
                 st.caption("Based on your current assumptions for growth, margins, reinvestment, and discount rate.")
+                
+                # Show key assumptions in table
+                assumptions_data = [
+                    {'Assumption': 'Revenue Growth', 'Value': f"{base_assumptions['revenue_growth']*100:.1f}%"},
+                    {'Assumption': 'WACC', 'Value': f"{base_assumptions['wacc']*100:.1f}%"},
+                    {'Assumption': 'Terminal EBIT Margin', 'Value': f"{base_assumptions['ebit_margin_terminal']*100:.1f}%"},
+                    {'Assumption': 'Terminal Growth', 'Value': f"{base_assumptions['terminal_growth']*100:.1f}%"}
+                ]
+                assumptions_df = pd.DataFrame(assumptions_data)
+                st.dataframe(assumptions_df, use_container_width=True, hide_index=True)
             else:
                 st.warning("Unable to solve for required exit multiple within reasonable range.")
         else:
