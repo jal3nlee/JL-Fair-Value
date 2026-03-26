@@ -828,19 +828,19 @@ def main():
             'Year': years,
             'Revenue Growth': [f"{round(r * 100 * 2) / 2:.1f}%" for r in revenue_path],
             'EBIT Margin': [f"{round(m * 100 * 2) / 2:.1f}%" for m in ebit_margin_path],
-            'CAPEX % Revenue': [f"{round(c * 100 * 2) / 2:.1f}%" for c in capex_path]
+            'CAPEX (% of Revenue)': [f"{round(c * 100 * 2) / 2:.1f}%" for c in capex_path]
         }
         
         path_df = pd.DataFrame(path_data)
         
-        st.subheader("Base Case Assumption Paths")
-        st.caption("How base case assumptions transition from initial to terminal values over the projection period")
+        st.subheader("Base Case Paths")
+        st.caption("How assumptions transition from initial to terminal values over time")
         st.dataframe(path_df, use_container_width=True, hide_index=True)
     
     # Tab 5: Forecast
     with tabs[5]:
-        st.subheader("Base Case Financial Projections")
-        st.caption("Forecasted revenue, EBIT, and free cash flow over the projection period")
+        st.subheader("Base Case Forecast")
+        st.caption("Projected revenue, EBIT, and free cash flow over time")
         
         # Get base case DCF results
         base_dcf = st.session_state.dcf_results.get('base')
@@ -862,7 +862,7 @@ def main():
                     'CAPEX': f"${p['CAPEX']/1e9:.1f}B",
                     'ΔWC': f"${p['ΔWC']/1e9:.1f}B",
                     'FCF': f"${p['FCF']/1e9:.1f}B",
-                    'PV(FCF)': f"${p['PV']/1e9:.1f}B"
+                    'PV of FCF': f"${p['PV']/1e9:.1f}B"
                 })
             
             forecast_df = pd.DataFrame(forecast_data)
@@ -873,7 +873,7 @@ def main():
             col1, col2, col3 = st.columns(3)
             with col1:
                 total_pv_fcf = base_dcf.get('sum_pv_fcf', 0)
-                st.metric("Sum of PV(FCF)", f"${total_pv_fcf/1e9:.1f}B")
+                st.metric("Present Value of FCF", f"${total_pv_fcf/1e9:.1f}B")
             with col2:
                 final_fcf = projection[-1]['FCF']
                 st.metric("Final Year FCF", f"${final_fcf/1e9:.1f}B")
