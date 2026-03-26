@@ -484,34 +484,17 @@ def main():
         col1, col2 = st.columns(2)
         
         with col1:
-            # Cap revenue growth at 100% if historical exceeds it
-            capped_revenue_growth = min(st.session_state.assumptions['base']['revenue_growth'] * 100, 100.0)
-            
-            slider_col, input_col = st.columns([3, 1])
-            with slider_col:
-                revenue_growth_pct = st.slider(
-                    "Revenue Growth (Initial)",
-                    min_value=-10.0,
-                    max_value=100.0,
-                    value=capped_revenue_growth,
-                    step=0.5,
-                    format="%.1f%%",
-                    help="Initial revenue growth rate",
-                    key="rev_growth"
-                )
-            with input_col:
-                revenue_growth_input = st.number_input(
-                    "Manual input",
-                    min_value=-10.0,
-                    max_value=100.0,
-                    value=revenue_growth_pct,  # Synced with slider
-                    step=0.5,
-                    format="%.1f",
-                    key="rev_growth_num",
-                    label_visibility="collapsed"
-                )
-            # Always use the number input (which stays synced with slider)
-            st.session_state.assumptions['base']['revenue_growth'] = revenue_growth_input / 100
+            revenue_growth_pct = st.slider(
+                "Revenue Growth (Initial)",
+                min_value=-10.0,
+                max_value=100.0,
+                value=min(st.session_state.assumptions['base']['revenue_growth'] * 100, 100.0),
+                step=0.5,
+                format="%.1f%%",
+                help="Initial revenue growth rate",
+                key="rev_growth"
+            )
+            st.session_state.assumptions['base']['revenue_growth'] = revenue_growth_pct / 100
             
             ebit_margin_pct = st.slider(
                 "EBIT Margin (Initial)",
