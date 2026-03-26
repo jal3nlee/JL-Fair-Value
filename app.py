@@ -789,48 +789,38 @@ def main():
         st.subheader("Gordon Growth (Perpetuity) Method")
         st.caption("Terminal value calculated using perpetual growth formula")
         
-        # Get base case DCF results
+        # Get all scenario results
+        bear_dcf = st.session_state.dcf_results.get('bear')
         base_dcf = st.session_state.dcf_results.get('base')
+        bull_dcf = st.session_state.dcf_results.get('bull')
         
         if base_dcf:
-            # Terminal Value Calculation
-            st.markdown("#### Terminal Value Calculation")
+            # Fair Value Across Scenarios
+            st.markdown("#### Fair Value Per Share")
             
-            col1, col2 = st.columns(2)
+            col1, col2, col3 = st.columns(3)
+            current_price = profile.get('price', 0)
+            
             with col1:
-                tv_gordon = base_dcf.get('terminal_value_gordon', 0)
-                st.metric("Terminal Value (Gordon)", f"${tv_gordon/1e9:.1f}B")
-                
-                pv_tv_gordon = base_dcf.get('pv_terminal_gordon', 0)
-                st.metric("PV of Terminal Value", f"${pv_tv_gordon/1e9:.1f}B")
+                bear_price = bear_dcf.get('price_per_share_gordon', 0) if bear_dcf else 0
+                bear_delta = ((bear_price - current_price) / current_price * 100) if current_price > 0 else 0
+                st.metric("Bear", f"${bear_price:.2f}", f"{bear_delta:+.1f}%")
             
             with col2:
-                sum_pv_fcf = base_dcf.get('sum_pv_fcf', 0)
-                st.metric("Sum of PV(FCF)", f"${sum_pv_fcf/1e9:.1f}B")
-                
-                ev_gordon = base_dcf.get('enterprise_value_gordon', 0)
-                st.metric("Enterprise Value", f"${ev_gordon/1e9:.1f}B")
+                base_price = base_dcf.get('price_per_share_gordon', 0)
+                base_delta = ((base_price - current_price) / current_price * 100) if current_price > 0 else 0
+                st.metric("Base", f"${base_price:.2f}", f"{base_delta:+.1f}%")
+            
+            with col3:
+                bull_price = bull_dcf.get('price_per_share_gordon', 0) if bull_dcf else 0
+                bull_delta = ((bull_price - current_price) / current_price * 100) if current_price > 0 else 0
+                st.metric("Bull", f"${bull_price:.2f}", f"{bull_delta:+.1f}%")
             
             st.markdown("---")
             
-            # Equity Value & Price Per Share
-            st.markdown("#### Equity Value & Price Per Share")
-            
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                equity_gordon = base_dcf.get('equity_value_gordon', 0)
-                st.metric("Equity Value", f"${equity_gordon/1e9:.1f}B")
-            
-            with col2:
-                # Get shares from financials
-                shares = financials['ratios'].get('shares_diluted', 1)
-                st.metric("Shares Outstanding", f"{shares/1e9:.2f}B")
-            
-            with col3:
-                price_gordon = base_dcf.get('price_per_share_gordon', 0)
-                current_price = profile.get('price', 0)
-                delta = ((price_gordon - current_price) / current_price * 100) if current_price > 0 else 0
-                st.metric("Fair Value / Share", f"${price_gordon:.2f}", f"{delta:+.1f}%")
+            # Sensitivity Analysis Placeholder
+            st.markdown("#### Sensitivity Analysis")
+            st.info("Sensitivity table showing value at different WACC and Terminal Growth combinations (coming soon)")
         else:
             st.warning("No Gordon Growth data available. DCF calculation may have failed.")
     
@@ -839,48 +829,38 @@ def main():
         st.subheader("Exit Multiple Method")
         st.caption("Terminal value calculated using exit EBIT multiple")
         
-        # Get base case DCF results
+        # Get all scenario results
+        bear_dcf = st.session_state.dcf_results.get('bear')
         base_dcf = st.session_state.dcf_results.get('base')
+        bull_dcf = st.session_state.dcf_results.get('bull')
         
         if base_dcf:
-            # Terminal Value Calculation
-            st.markdown("#### Terminal Value Calculation")
+            # Fair Value Across Scenarios
+            st.markdown("#### Fair Value Per Share")
             
-            col1, col2 = st.columns(2)
+            col1, col2, col3 = st.columns(3)
+            current_price = profile.get('price', 0)
+            
             with col1:
-                tv_exit = base_dcf.get('terminal_value_exit', 0)
-                st.metric("Terminal Value (Exit)", f"${tv_exit/1e9:.1f}B")
-                
-                pv_tv_exit = base_dcf.get('pv_terminal_exit', 0)
-                st.metric("PV of Terminal Value", f"${pv_tv_exit/1e9:.1f}B")
+                bear_price = bear_dcf.get('price_per_share_exit', 0) if bear_dcf else 0
+                bear_delta = ((bear_price - current_price) / current_price * 100) if current_price > 0 else 0
+                st.metric("Bear", f"${bear_price:.2f}", f"{bear_delta:+.1f}%")
             
             with col2:
-                sum_pv_fcf = base_dcf.get('sum_pv_fcf', 0)
-                st.metric("Sum of PV(FCF)", f"${sum_pv_fcf/1e9:.1f}B")
-                
-                ev_exit = base_dcf.get('enterprise_value_exit', 0)
-                st.metric("Enterprise Value", f"${ev_exit/1e9:.1f}B")
+                base_price = base_dcf.get('price_per_share_exit', 0)
+                base_delta = ((base_price - current_price) / current_price * 100) if current_price > 0 else 0
+                st.metric("Base", f"${base_price:.2f}", f"{base_delta:+.1f}%")
+            
+            with col3:
+                bull_price = bull_dcf.get('price_per_share_exit', 0) if bull_dcf else 0
+                bull_delta = ((bull_price - current_price) / current_price * 100) if current_price > 0 else 0
+                st.metric("Bull", f"${bull_price:.2f}", f"{bull_delta:+.1f}%")
             
             st.markdown("---")
             
-            # Equity Value & Price Per Share
-            st.markdown("#### Equity Value & Price Per Share")
-            
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                equity_exit = base_dcf.get('equity_value_exit', 0)
-                st.metric("Equity Value", f"${equity_exit/1e9:.1f}B")
-            
-            with col2:
-                # Get shares from financials
-                shares = financials['ratios'].get('shares_diluted', 1)
-                st.metric("Shares Outstanding", f"{shares/1e9:.2f}B")
-            
-            with col3:
-                price_exit = base_dcf.get('price_per_share_exit', 0)
-                current_price = profile.get('price', 0)
-                delta = ((price_exit - current_price) / current_price * 100) if current_price > 0 else 0
-                st.metric("Fair Value / Share", f"${price_exit:.2f}", f"{delta:+.1f}%")
+            # Sensitivity Analysis Placeholder
+            st.markdown("#### Sensitivity Analysis")
+            st.info("Sensitivity table showing value at different Exit Multiple and WACC combinations (coming soon)")
         else:
             st.warning("No Exit Multiple data available. DCF calculation may have failed.")
     
