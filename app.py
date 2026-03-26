@@ -627,6 +627,9 @@ def main():
         
         st.markdown("---")
         
+        # Extract ratios before buttons (needed for reset)
+        ratios = financials['ratios']
+        
         # Editable Base Assumptions - Header with buttons inline
         col1, col2, col3 = st.columns([2, 1, 1])
         with col1:
@@ -672,9 +675,6 @@ def main():
                 st.session_state.valuation_ready = True
         
         st.caption("Adjust the sliders below. Bear and Bull scenarios use multipliers of Base values.")
-        
-        # Extract current values from session state
-        ratios = financials['ratios']
         
         st.markdown("#### Growth & Margins")
         
