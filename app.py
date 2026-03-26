@@ -804,19 +804,45 @@ def main():
             st.markdown("#### Sensitivity Analysis")
             st.caption("Fair value at different WACC and Terminal Growth combinations (Base case)")
             
-            # Define round number ranges
-            wacc_range = [0.06, 0.07, 0.085, 0.10, 0.12]  # 6%, 7%, 8.5%, 10%, 12%
-            term_growth_range = [0.015, 0.020, 0.025, 0.030, 0.035]  # 1.5%, 2%, 2.5%, 3%, 3.5%
-            
-            # Get base assumptions (for everything else)
+            # Get base case values
             base_assumptions = st.session_state.assumptions['base']
+            base_wacc = base_assumptions['wacc']
+            base_term_growth = base_assumptions['terminal_growth']
+            
+            # Define tight ranges around base
+            # WACC: ±1.5% total range, 0.5% steps
+            wacc_range = [
+                base_wacc - 0.015,
+                base_wacc - 0.010,
+                base_wacc - 0.005,
+                base_wacc,
+                base_wacc + 0.005,
+                base_wacc + 0.010,
+                base_wacc + 0.015
+            ]
+            
+            # Terminal Growth: ±1.0% total range, 0.25% steps
+            term_growth_range = [
+                base_term_growth - 0.010,
+                base_term_growth - 0.0075,
+                base_term_growth - 0.005,
+                base_term_growth - 0.0025,
+                base_term_growth,
+                base_term_growth + 0.0025,
+                base_term_growth + 0.005
+            ]
             
             # Build sensitivity table
             sensitivity_data = []
             for wacc in wacc_range:
                 row = {'WACC': f"{wacc*100:.1f}%"}
                 for tg in term_growth_range:
-                    # Create temp assumptions with varied WACC and terminal growth
+                    # Ensure terminal growth stays below WACC (Gordon Growth constraint)
+                    if tg >= wacc:
+                        row[f"{tg*100:.2f}%"] = "N/A"
+                        continue
+                    
+                    # Create temp assumptions
                     temp_assumptions = base_assumptions.copy()
                     temp_assumptions['wacc'] = wacc
                     temp_assumptions['terminal_growth'] = tg
@@ -840,9 +866,9 @@ def main():
                     try:
                         result = dcf_model(financials, dcf_temp, 'sensitivity')
                         price = result.get('price_per_share_gordon', 0)
-                        row[f"{tg*100:.1f}%"] = f"${price:.0f}"
+                        row[f"{tg*100:.2f}%"] = f"${price:.0f}"
                     except:
-                        row[f"{tg*100:.1f}%"] = "N/A"
+                        row[f"{tg*100:.2f}%"] = "N/A"
                 
                 sensitivity_data.append(row)
             
@@ -889,19 +915,40 @@ def main():
             st.markdown("#### Sensitivity Analysis")
             st.caption("Fair value at different WACC and Exit Multiple combinations (Base case)")
             
-            # Define round number ranges
-            wacc_range = [0.06, 0.07, 0.085, 0.10, 0.12]  # 6%, 7%, 8.5%, 10%, 12%
-            exit_mult_range = [15, 20, 25, 30, 35]  # 15x, 20x, 25x, 30x, 35x
-            
-            # Get base assumptions (for everything else)
+            # Get base case values
             base_assumptions = st.session_state.assumptions['base']
+            base_wacc = base_assumptions['wacc']
+            base_exit_mult = base_assumptions['exit_multiple']
+            
+            # Define ranges around base
+            # WACC: ±1.5% total range, 0.5% steps (same as Gordon Growth)
+            wacc_range = [
+                base_wacc - 0.015,
+                base_wacc - 0.010,
+                base_wacc - 0.005,
+                base_wacc,
+                base_wacc + 0.005,
+                base_wacc + 0.010,
+                base_wacc + 0.015
+            ]
+            
+            # Exit Multiple: ±20-25% range, 2x increments
+            exit_mult_range = [
+                base_exit_mult - 6,
+                base_exit_mult - 4,
+                base_exit_mult - 2,
+                base_exit_mult,
+                base_exit_mult + 2,
+                base_exit_mult + 4,
+                base_exit_mult + 6
+            ]
             
             # Build sensitivity table
             sensitivity_data = []
             for wacc in wacc_range:
                 row = {'WACC': f"{wacc*100:.1f}%"}
                 for em in exit_mult_range:
-                    # Create temp assumptions with varied WACC and exit multiple
+                    # Create temp assumptions
                     temp_assumptions = base_assumptions.copy()
                     temp_assumptions['wacc'] = wacc
                     temp_assumptions['exit_multiple'] = em
