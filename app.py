@@ -233,9 +233,8 @@ def main():
                     'financials': financials
                 }
                 
-                # Debug: Show what was stored
-                
                 st.success(f"Data loaded for {profile.get('companyName', ticker_input)}")
+                st.rerun()  # Force page reload with new data
         
         except FMPAPIError as e:
             st.error(f"API Error: {str(e)}")
