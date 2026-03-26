@@ -109,6 +109,15 @@ st.markdown("""
         padding-top: 2rem;
         padding-bottom: 2rem;
     }
+    
+    /* Run Valuation button */
+    .stButton > button[kind="primary"] {
+        background-color: #667eea;
+        border: none;
+        font-weight: 600;
+        font-size: 1.1rem;
+        padding: 0.75rem 2rem;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -333,6 +342,11 @@ def main():
             st.dataframe(summary_df, hide_index=True, use_container_width=True)
             
             st.markdown("---")
+        
+        # Check if valuation has been run
+        if not st.session_state.get('valuation_ready', False):
+            st.info("👉 Go to the **Assumptions** tab and click **'Run Valuation'** to see results.")
+            st.stop()
         
         # Get current price from profile
         current_price = profile.get('price', 178.68)
@@ -608,6 +622,16 @@ def main():
                 key="proj_years"
             )
             st.session_state.assumptions['base']['projection_years'] = projection_years
+        
+        st.markdown("---")
+        
+        # Run Valuation Button
+        col1, col2, col3 = st.columns([1, 1, 1])
+        with col2:
+            if st.button("🚀 Run Valuation", type="primary", use_container_width=True):
+                # Trigger calculation
+                st.session_state.valuation_ready = True
+                st.success("✓ Valuation complete! Check Dashboard, Gordon Growth, and Exit Multiple tabs.")
     
     # Tab 4: Growth Paths
     with tabs[3]:
