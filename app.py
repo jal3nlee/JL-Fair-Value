@@ -786,11 +786,103 @@ def main():
     
     # Tab 6: Gordon Growth
     with tabs[5]:
-        st.markdown("*Perpetuity valuation results and sensitivity analysis*")
+        st.subheader("Gordon Growth (Perpetuity) Method")
+        st.caption("Terminal value calculated using perpetual growth formula")
+        
+        # Get base case DCF results
+        base_dcf = st.session_state.dcf_results.get('base')
+        
+        if base_dcf:
+            # Terminal Value Calculation
+            st.markdown("#### Terminal Value Calculation")
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                tv_gordon = base_dcf.get('terminal_value_gordon', 0)
+                st.metric("Terminal Value (Gordon)", f"${tv_gordon/1e9:.1f}B")
+                
+                pv_tv_gordon = base_dcf.get('pv_terminal_gordon', 0)
+                st.metric("PV of Terminal Value", f"${pv_tv_gordon/1e9:.1f}B")
+            
+            with col2:
+                sum_pv_fcf = base_dcf.get('sum_pv_fcf', 0)
+                st.metric("Sum of PV(FCF)", f"${sum_pv_fcf/1e9:.1f}B")
+                
+                ev_gordon = base_dcf.get('enterprise_value_gordon', 0)
+                st.metric("Enterprise Value", f"${ev_gordon/1e9:.1f}B")
+            
+            st.markdown("---")
+            
+            # Equity Value & Price Per Share
+            st.markdown("#### Equity Value & Price Per Share")
+            
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                equity_gordon = base_dcf.get('equity_value_gordon', 0)
+                st.metric("Equity Value", f"${equity_gordon/1e9:.1f}B")
+            
+            with col2:
+                # Get shares from financials
+                shares = financials['ratios'].get('shares_diluted', 1)
+                st.metric("Shares Outstanding", f"{shares/1e9:.2f}B")
+            
+            with col3:
+                price_gordon = base_dcf.get('price_per_share_gordon', 0)
+                current_price = profile.get('price', 0)
+                delta = ((price_gordon - current_price) / current_price * 100) if current_price > 0 else 0
+                st.metric("Fair Value / Share", f"${price_gordon:.2f}", f"{delta:+.1f}%")
+        else:
+            st.warning("No Gordon Growth data available. DCF calculation may have failed.")
     
     # Tab 7: Exit Multiple
     with tabs[6]:
-        st.markdown("*Exit multiple valuation results and sensitivity analysis*")
+        st.subheader("Exit Multiple Method")
+        st.caption("Terminal value calculated using exit EBIT multiple")
+        
+        # Get base case DCF results
+        base_dcf = st.session_state.dcf_results.get('base')
+        
+        if base_dcf:
+            # Terminal Value Calculation
+            st.markdown("#### Terminal Value Calculation")
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                tv_exit = base_dcf.get('terminal_value_exit', 0)
+                st.metric("Terminal Value (Exit)", f"${tv_exit/1e9:.1f}B")
+                
+                pv_tv_exit = base_dcf.get('pv_terminal_exit', 0)
+                st.metric("PV of Terminal Value", f"${pv_tv_exit/1e9:.1f}B")
+            
+            with col2:
+                sum_pv_fcf = base_dcf.get('sum_pv_fcf', 0)
+                st.metric("Sum of PV(FCF)", f"${sum_pv_fcf/1e9:.1f}B")
+                
+                ev_exit = base_dcf.get('enterprise_value_exit', 0)
+                st.metric("Enterprise Value", f"${ev_exit/1e9:.1f}B")
+            
+            st.markdown("---")
+            
+            # Equity Value & Price Per Share
+            st.markdown("#### Equity Value & Price Per Share")
+            
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                equity_exit = base_dcf.get('equity_value_exit', 0)
+                st.metric("Equity Value", f"${equity_exit/1e9:.1f}B")
+            
+            with col2:
+                # Get shares from financials
+                shares = financials['ratios'].get('shares_diluted', 1)
+                st.metric("Shares Outstanding", f"{shares/1e9:.2f}B")
+            
+            with col3:
+                price_exit = base_dcf.get('price_per_share_exit', 0)
+                current_price = profile.get('price', 0)
+                delta = ((price_exit - current_price) / current_price * 100) if current_price > 0 else 0
+                st.metric("Fair Value / Share", f"${price_exit:.2f}", f"{delta:+.1f}%")
+        else:
+            st.warning("No Exit Multiple data available. DCF calculation may have failed.")
     
     # Tab 8: Implied
     with tabs[7]:
