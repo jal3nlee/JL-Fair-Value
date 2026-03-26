@@ -379,13 +379,7 @@ def main():
             dcf_errors.append(error_msg)
             st.session_state.dcf_results[scenario_name] = None
     
-    # Show errors if any
-    if dcf_errors:
-        st.error("DCF Calculation Errors:")
-        for err in dcf_errors:
-            st.write(f"- {err}")
-    
-    # Create tabs
+    # Create tabs (don't show any errors or messages before tabs to avoid tab reset)
     tabs = st.tabs([
         "Overview",
         "Dashboard",
