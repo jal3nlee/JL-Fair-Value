@@ -1017,16 +1017,16 @@ def main():
     
     # Tab 8: Implied
     with tabs[7]:
-        st.subheader("Implied Valuation (Reverse DCF)")
-        st.caption("What assumptions is the market pricing in at the current share price?")
+        st.subheader("What Needs to Be True at Today's Price")
+        st.caption("Reverse DCF: What values would justify the current market price given your model assumptions?")
         
         # Get current market price
         current_price = profile.get('price', 0)
         base_assumptions = st.session_state.assumptions['base']
         
         if current_price > 0:
-            st.markdown(f"### Market Implied Expectations")
-            st.markdown(f"*At **${current_price:.2f}/share***")
+            st.markdown(f"**Current Price:** ${current_price:.2f}/share")
+            st.markdown("---")
             
             # Helper function to find implied value
             def find_implied_value(param_name, min_val, max_val, target_price, assumptions_template):
@@ -1074,11 +1074,11 @@ def main():
                 
                 return mid_val
             
-            # PART 1: Implied Revenue Growth (holding valuation constant)
-            st.markdown("#### Implied Growth (holding valuation constant)")
+            # BLOCK 1: Growth Required (holding valuation assumptions constant)
+            st.markdown("### Holding valuation assumptions constant")
             
-            with st.spinner("Calculating implied revenue growth..."):
-                implied_rev_growth = find_implied_value(
+            with st.spinner("Calculating required revenue growth..."):
+                required_rev_growth = find_implied_value(
                     'revenue_growth',
                     -0.10,  # -10%
                     2.0,    # 200%
@@ -1086,24 +1086,31 @@ def main():
                     base_assumptions.copy()
                 )
             
-            if implied_rev_growth is not None:
-                col1, col2 = st.columns([1, 2])
-                with col1:
-                    st.metric("Implied Revenue Growth", f"{implied_rev_growth*100:.1f}%")
-                with col2:
-                    st.caption(f"**Assumes:** {base_assumptions['exit_multiple']:.1f}x exit multiple, "
-                              f"{base_assumptions['wacc']*100:.1f}% WACC, "
-                              f"{base_assumptions['ebit_margin_terminal']*100:.1f}% terminal margin")
+            if required_rev_growth is not None:
+                # Display required value prominently
+                st.metric("Required Revenue Growth", f"{required_rev_growth*100:.1f}%", 
+                         label_visibility="visible")
+                
+                # Show key assumptions in table
+                st.caption("**Model assumptions used:**")
+                assumptions_data = [
+                    {'Assumption': 'Exit Multiple', 'Value': f"{base_assumptions['exit_multiple']:.1f}x"},
+                    {'Assumption': 'WACC', 'Value': f"{base_assumptions['wacc']*100:.1f}%"},
+                    {'Assumption': 'Terminal EBIT Margin', 'Value': f"{base_assumptions['ebit_margin_terminal']*100:.1f}%"},
+                    {'Assumption': 'Terminal Growth', 'Value': f"{base_assumptions['terminal_growth']*100:.1f}%"}
+                ]
+                assumptions_df = pd.DataFrame(assumptions_data)
+                st.dataframe(assumptions_df, use_container_width=True, hide_index=True)
             else:
-                st.warning("Unable to solve for implied revenue growth within reasonable range.")
+                st.warning("Unable to solve for required revenue growth within reasonable range.")
             
             st.markdown("---")
             
-            # PART 2: Implied Exit Multiple (holding fundamentals constant)
-            st.markdown("#### Implied Multiple (holding fundamentals constant)")
+            # BLOCK 2: Multiple Required (holding operating assumptions constant)
+            st.markdown("### Holding operating assumptions constant")
             
-            with st.spinner("Calculating implied exit multiple..."):
-                implied_exit_mult = find_implied_value(
+            with st.spinner("Calculating required exit multiple..."):
+                required_exit_mult = find_implied_value(
                     'exit_multiple',
                     5,
                     50,
@@ -1111,47 +1118,30 @@ def main():
                     base_assumptions.copy()
                 )
             
-            if implied_exit_mult is not None:
-                col1, col2 = st.columns([1, 2])
-                with col1:
-                    st.metric("Implied Exit Multiple", f"{implied_exit_mult:.1f}x")
-                with col2:
-                    st.caption(f"**Assumes:** {base_assumptions['revenue_growth']*100:.1f}% revenue growth, "
-                              f"{base_assumptions['wacc']*100:.1f}% WACC, "
-                              f"{base_assumptions['ebit_margin_terminal']*100:.1f}% terminal margin")
+            if required_exit_mult is not None:
+                # Display required value prominently
+                st.metric("Required Exit Multiple", f"{required_exit_mult:.1f}x",
+                         label_visibility="visible")
+                
+                # Show key assumptions in table
+                st.caption("**Model assumptions used:**")
+                assumptions_data = [
+                    {'Assumption': 'Revenue Growth', 'Value': f"{base_assumptions['revenue_growth']*100:.1f}%"},
+                    {'Assumption': 'WACC', 'Value': f"{base_assumptions['wacc']*100:.1f}%"},
+                    {'Assumption': 'Terminal EBIT Margin', 'Value': f"{base_assumptions['ebit_margin_terminal']*100:.1f}%"},
+                    {'Assumption': 'Terminal Growth', 'Value': f"{base_assumptions['terminal_growth']*100:.1f}%"}
+                ]
+                assumptions_df = pd.DataFrame(assumptions_data)
+                st.dataframe(assumptions_df, use_container_width=True, hide_index=True)
             else:
-                st.warning("Unable to solve for implied exit multiple within reasonable range.")
+                st.warning("Unable to solve for required exit multiple within reasonable range.")
             
             st.markdown("---")
             
-            # Comparison Summary
-            if implied_rev_growth is not None or implied_exit_mult is not None:
-                st.markdown("#### Your Base Case vs Market Implied")
-                
-                comparison_data = []
-                
-                if implied_rev_growth is not None:
-                    diff_rev = ((implied_rev_growth / base_assumptions['revenue_growth']) - 1) * 100
-                    comparison_data.append({
-                        'Metric': 'Revenue Growth',
-                        'Your Base Case': f"{base_assumptions['revenue_growth']*100:.1f}%",
-                        'Market Implied': f"{implied_rev_growth*100:.1f}%",
-                        'Difference': f"{diff_rev:+.0f}%"
-                    })
-                
-                if implied_exit_mult is not None:
-                    diff_mult = ((implied_exit_mult / base_assumptions['exit_multiple']) - 1) * 100
-                    comparison_data.append({
-                        'Metric': 'Exit Multiple',
-                        'Your Base Case': f"{base_assumptions['exit_multiple']:.1f}x",
-                        'Market Implied': f"{implied_exit_mult:.1f}x",
-                        'Difference': f"{diff_mult:+.0f}%"
-                    })
-                
-                comp_df = pd.DataFrame(comparison_data)
-                st.dataframe(comp_df, use_container_width=True, hide_index=True)
+            # Clarifying footnote
+            st.caption("ℹ️ These values are solved independently and should not be interpreted as a single combined scenario. Results depend on the model's assumptions.")
         else:
-            st.warning("No current price available to calculate implied assumptions.")
+            st.warning("No current price available to calculate required assumptions.")
 
 
 if __name__ == "__main__":
