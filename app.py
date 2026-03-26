@@ -276,37 +276,33 @@ def main():
     
     st.write("DEBUG: After header render")
     
-    # Initialize session state for assumptions BEFORE creating tabs
-    if 'assumptions' not in st.session_state:
-        st.write("DEBUG: Initializing assumptions...")
-        ratios = financials['ratios']
-        default_capex = float(ratios['capex_ratio']) if ratios['capex_ratio'] else 0.15
-        default_exit = calculate_default_exit_multiple(
-            ratios['ebit_margin'],
-            ratios['revenue_cagr']
-        )
-        
-        st.write("DEBUG: default_capex =", default_capex, "default_exit =", default_exit)
-        
-        st.session_state.assumptions = {
-            'base': {
-                'revenue_growth': float(ratios['revenue_cagr']) if ratios['revenue_cagr'] else 0.10,
-                'terminal_growth': 0.025,
-                'ebit_margin_initial': float(ratios['ebit_margin']) if ratios['ebit_margin'] else 0.40,
-                'ebit_margin_terminal': float(ratios['ebit_margin']) if ratios['ebit_margin'] else 0.40,
-                'capex_initial': default_capex,
-                'capex_terminal': max(0.10, default_capex - 0.03),
-                'da_ratio': float(ratios['da_ratio']) if ratios['da_ratio'] else 0.05,
-                'wc_ratio': float(ratios['wc_ratio']) if ratios['wc_ratio'] else 0.05,
-                'tax_rate': float(ratios['tax_rate']) if ratios['tax_rate'] else 0.21,
-                'wacc': 0.085,
-                'exit_multiple': default_exit,
-                'projection_years': 7
-            }
+    # ALWAYS initialize assumptions (don't rely on session state check)
+    st.write("DEBUG: Initializing assumptions...")
+    ratios = financials['ratios']
+    default_capex = float(ratios['capex_ratio']) if ratios['capex_ratio'] else 0.15
+    default_exit = calculate_default_exit_multiple(
+        ratios['ebit_margin'],
+        ratios['revenue_cagr']
+    )
+    
+    st.write("DEBUG: default_capex =", default_capex, "default_exit =", default_exit)
+    
+    st.session_state.assumptions = {
+        'base': {
+            'revenue_growth': float(ratios['revenue_cagr']) if ratios['revenue_cagr'] else 0.10,
+            'terminal_growth': 0.025,
+            'ebit_margin_initial': float(ratios['ebit_margin']) if ratios['ebit_margin'] else 0.40,
+            'ebit_margin_terminal': float(ratios['ebit_margin']) if ratios['ebit_margin'] else 0.40,
+            'capex_initial': default_capex,
+            'capex_terminal': max(0.10, default_capex - 0.03),
+            'da_ratio': float(ratios['da_ratio']) if ratios['da_ratio'] else 0.05,
+            'wc_ratio': float(ratios['wc_ratio']) if ratios['wc_ratio'] else 0.05,
+            'tax_rate': float(ratios['tax_rate']) if ratios['tax_rate'] else 0.21,
+            'wacc': 0.085,
+            'exit_multiple': default_exit,
+            'projection_years': 7
         }
-        # Initialize Bear/Bull
-        st.session_state.assumptions['bear'] = {}
-        st.session_state.assumptions['bull'] = {}
+    }
     
     # ALWAYS update Bear and Bull based on current Base values (runs every time page renders)
     st.write("DEBUG: About to update bear/bull from base...")
