@@ -304,6 +304,9 @@ def main():
     if 'dcf_results' not in st.session_state:
         st.session_state.dcf_results = {}
     
+    # Show DCF calculation status
+    dcf_errors = []
+    
     for scenario_name in ['bear', 'base', 'bull']:
         # Map session state assumptions to dcf_model format
         scenario_assumptions = st.session_state.assumptions[scenario_name]
@@ -327,8 +330,15 @@ def main():
             result = dcf_model(financials, dcf_assumptions, scenario_name)
             st.session_state.dcf_results[scenario_name] = result
         except Exception as e:
-            st.error(f"DCF calculation failed for {scenario_name}: {str(e)}")
+            error_msg = f"DCF {scenario_name}: {str(e)}"
+            dcf_errors.append(error_msg)
             st.session_state.dcf_results[scenario_name] = None
+    
+    # Show errors if any
+    if dcf_errors:
+        st.error("DCF Calculation Errors:")
+        for err in dcf_errors:
+            st.write(f"- {err}")
     
     # Create tabs
     tabs = st.tabs([
@@ -670,7 +680,66 @@ def main():
     
     # Tab 4: Growth Paths
     with tabs[3]:
-        st.markdown("*Charts showing how assumptions translate over projection period*")
+        # Get base assumptions
+        base_assumptions = st.session_state.assumptions['base']
+        
+        # Import path calculation functions
+        from src.valuation.dcf_engine import (
+            calculate_growth_path_with_plateau,
+            calculate_ebit_margin_path,
+            calculate_capex_path
+        )
+        
+        # Calculate paths based on current assumptions
+        projection_years = int(base_assumptions['projection_years'])
+        
+        revenue_path = calculate_growth_path_with_plateau(
+            base_assumptions['revenue_growth'],
+            base_assumptions['terminal_growth'],
+            projection_years
+        )
+        
+        ebit_margin_path = calculate_ebit_margin_path(
+            base_assumptions['ebit_margin_initial'],
+            base_assumptions['ebit_margin_terminal'],
+            projection_years
+        )
+        
+        capex_path = calculate_capex_path(
+            base_assumptions['capex_initial'],
+            base_assumptions['capex_terminal'],
+            projection_years
+        )
+        
+        # Create DataFrames for charts
+        years = list(range(1, projection_years + 1))
+        
+        # Revenue Growth Chart
+        st.subheader("Revenue Growth Path")
+        st.caption("How revenue growth declines from initial to terminal rate")
+        revenue_df = pd.DataFrame({
+            'Year': years,
+            'Growth Rate': [r * 100 for r in revenue_path]  # Convert to percentage
+        })
+        st.line_chart(revenue_df.set_index('Year'))
+        
+        # EBIT Margin Chart
+        st.subheader("EBIT Margin Path")
+        st.caption("Margin transition from initial to terminal level")
+        margin_df = pd.DataFrame({
+            'Year': years,
+            'EBIT Margin': [m * 100 for m in ebit_margin_path]  # Convert to percentage
+        })
+        st.line_chart(margin_df.set_index('Year'))
+        
+        # CAPEX Path Chart
+        st.subheader("CAPEX % of Revenue Path")
+        st.caption("CAPEX ratio fade from initial to terminal")
+        capex_df = pd.DataFrame({
+            'Year': years,
+            'CAPEX %': [c * 100 for c in capex_path]  # Convert to percentage
+        })
+        st.line_chart(capex_df.set_index('Year'))
     
     # Tab 5: Forecast
     with tabs[4]:
