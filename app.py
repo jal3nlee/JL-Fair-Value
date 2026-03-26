@@ -297,8 +297,38 @@ def main():
     
     # ALWAYS update Bear and Bull based on current Base values (runs every time page renders)
     base = st.session_state.assumptions['base']
-    st.session_state.assumptions['bear'] = {k: v * 0.6 if k not in ['projection_years', 'exit_multiple', 'tax_rate'] else v for k, v in base.items()}
-    st.session_state.assumptions['bull'] = {k: v * 1.3 if k not in ['projection_years', 'exit_multiple', 'tax_rate'] else v for k, v in base.items()}
+    
+    # Bear scenario - conservative
+    st.session_state.assumptions['bear'] = {
+        'revenue_growth': base['revenue_growth'] * 0.65,  # Wide dispersion for growth
+        'terminal_growth': base['terminal_growth'] * 0.85,  # Tight range
+        'ebit_margin_initial': base['ebit_margin_initial'] * 0.80,  # Realistic margin compression
+        'ebit_margin_terminal': base['ebit_margin_terminal'] * 0.80,
+        'capex_initial': base['capex_initial'] * 1.20,  # Higher reinvestment (less efficient)
+        'capex_terminal': base['capex_terminal'] * 1.20,
+        'da_ratio': base['da_ratio'] * 1.20,  # Higher D&A burden
+        'wc_ratio': base['wc_ratio'] * 1.20,  # More working capital needed
+        'tax_rate': base['tax_rate'],  # Keep same
+        'wacc': base['wacc'] * 1.15,  # CRITICAL: Higher discount rate
+        'exit_multiple': base['exit_multiple'] * 0.80,  # Lower exit valuation
+        'projection_years': base['projection_years']  # Keep same
+    }
+    
+    # Bull scenario - optimistic
+    st.session_state.assumptions['bull'] = {
+        'revenue_growth': base['revenue_growth'] * 1.25,  # Wide dispersion for growth
+        'terminal_growth': base['terminal_growth'] * 1.15,  # Tight range
+        'ebit_margin_initial': base['ebit_margin_initial'] * 1.15,  # Realistic margin expansion
+        'ebit_margin_terminal': base['ebit_margin_terminal'] * 1.15,
+        'capex_initial': base['capex_initial'] * 0.90,  # Lower reinvestment (more efficient)
+        'capex_terminal': base['capex_terminal'] * 0.90,
+        'da_ratio': base['da_ratio'] * 0.90,  # Lower D&A burden
+        'wc_ratio': base['wc_ratio'] * 0.90,  # Less working capital needed
+        'tax_rate': base['tax_rate'],  # Keep same
+        'wacc': base['wacc'] * 0.90,  # CRITICAL: Lower discount rate
+        'exit_multiple': base['exit_multiple'] * 1.20,  # Higher exit valuation
+        'projection_years': base['projection_years']  # Keep same
+    }
     
     # Run DCF for all 3 scenarios
     if 'dcf_results' not in st.session_state:
