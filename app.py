@@ -585,12 +585,12 @@ def main():
         bull = st.session_state.assumptions['bull']
         
         assumptions_data = [
-            {'Assumption': 'Revenue Growth', 'Bear': f"{bear['revenue_growth']*100:.1f}%", 'Base': f"{base['revenue_growth']*100:.1f}%", 'Bull': f"{bull['revenue_growth']*100:.1f}%"},
+            {'Assumption': 'Revenue CAGR (Forecast)', 'Bear': f"{bear['revenue_growth']*100:.1f}%", 'Base': f"{base['revenue_growth']*100:.1f}%", 'Bull': f"{bull['revenue_growth']*100:.1f}%"},
             {'Assumption': 'Terminal Growth', 'Bear': f"{bear['terminal_growth']*100:.1f}%", 'Base': f"{base['terminal_growth']*100:.1f}%", 'Bull': f"{bull['terminal_growth']*100:.1f}%"},
             {'Assumption': 'EBIT Margin (Init)', 'Bear': f"{bear['ebit_margin_initial']*100:.1f}%", 'Base': f"{base['ebit_margin_initial']*100:.1f}%", 'Bull': f"{bull['ebit_margin_initial']*100:.1f}%"},
             {'Assumption': 'EBIT Margin (Term)', 'Bear': f"{bear['ebit_margin_terminal']*100:.1f}%", 'Base': f"{base['ebit_margin_terminal']*100:.1f}%", 'Bull': f"{bull['ebit_margin_terminal']*100:.1f}%"},
-            {'Assumption': 'CAPEX Initial', 'Bear': f"{bear['capex_initial']*100:.1f}%", 'Base': f"{base['capex_initial']*100:.1f}%", 'Bull': f"{bull['capex_initial']*100:.1f}%"},
-            {'Assumption': 'CAPEX Terminal', 'Bear': f"{bear['capex_terminal']*100:.1f}%", 'Base': f"{base['capex_terminal']*100:.1f}%", 'Bull': f"{bull['capex_terminal']*100:.1f}%"},
+            {'Assumption': 'CAPEX (Initial % Revenue)', 'Bear': f"{bear['capex_initial']*100:.1f}%", 'Base': f"{base['capex_initial']*100:.1f}%", 'Bull': f"{bull['capex_initial']*100:.1f}%"},
+            {'Assumption': 'CAPEX (Terminal % Revenue)', 'Bear': f"{bear['capex_terminal']*100:.1f}%", 'Base': f"{base['capex_terminal']*100:.1f}%", 'Bull': f"{bull['capex_terminal']*100:.1f}%"},
             {'Assumption': 'Tax Rate', 'Bear': f"{bear['tax_rate']*100:.1f}%", 'Base': f"{base['tax_rate']*100:.1f}%", 'Bull': f"{bull['tax_rate']*100:.1f}%"},
             {'Assumption': 'WACC', 'Bear': f"{bear['wacc']*100:.1f}%", 'Base': f"{base['wacc']*100:.1f}%", 'Bull': f"{bull['wacc']*100:.1f}%"},
             {'Assumption': 'Exit Multiple', 'Bear': f"{bear['exit_multiple']:.1f}x", 'Base': f"{base['exit_multiple']:.1f}x", 'Bull': f"{bull['exit_multiple']:.1f}x"},
@@ -598,6 +598,8 @@ def main():
         
         summary_df = pd.DataFrame(assumptions_data)
         st.dataframe(summary_df, hide_index=True, use_container_width=True)
+        
+        st.caption("Bear and Bull scenarios are derived from base case multipliers")
         
         st.markdown("---")
         
@@ -614,19 +616,19 @@ def main():
         # Extract current values from session state
         ratios = financials['ratios']
         
-        st.markdown("#### Revenue & Margins")
+        st.markdown("#### Growth & Margins")
         
         col1, col2 = st.columns(2)
         
         with col1:
             revenue_growth_pct = st.slider(
-                "Revenue Growth (Initial)",
+                "Revenue CAGR (Forecast)",
                 min_value=-10.0,
                 max_value=100.0,
                 value=min(st.session_state.assumptions['base']['revenue_growth'] * 100, 100.0),
                 step=0.5,
                 format="%.1f%%",
-                help="Initial revenue growth rate",
+                help="Annualized revenue growth rate for forecast period",
                 key="rev_growth"
             )
             st.session_state.assumptions['base']['revenue_growth'] = revenue_growth_pct / 100
@@ -669,13 +671,13 @@ def main():
             st.session_state.assumptions['base']['ebit_margin_terminal'] = ebit_margin_terminal_pct / 100
         
         st.markdown("---")
-        st.markdown("#### CAPEX & Working Capital")
+        st.markdown("#### Reinvestment")
         
         col1, col2 = st.columns(2)
         
         with col1:
             capex_initial_pct = st.slider(
-                "CAPEX Initial %",
+                "CAPEX (Initial % of Revenue)",
                 min_value=0.0,
                 max_value=40.0,
                 value=st.session_state.assumptions['base']['capex_initial'] * 100,
@@ -700,7 +702,7 @@ def main():
         
         with col2:
             capex_terminal_pct = st.slider(
-                "CAPEX Terminal %",
+                "CAPEX (Terminal % of Revenue)",
                 min_value=0.0,
                 max_value=40.0,
                 value=st.session_state.assumptions['base']['capex_terminal'] * 100,
@@ -712,7 +714,7 @@ def main():
             st.session_state.assumptions['base']['capex_terminal'] = capex_terminal_pct / 100
             
             wc_ratio_pct = st.slider(
-                "Working Capital Ratio",
+                "Working Capital (% of Revenue)",
                 min_value=-10.0,
                 max_value=50.0,
                 value=st.session_state.assumptions['base']['wc_ratio'] * 100,
@@ -755,13 +757,13 @@ def main():
             st.session_state.assumptions['base']['wacc'] = wacc_pct / 100
         
         st.markdown("---")
-        st.markdown("#### Exit Multiple & Projection Period")
+        st.markdown("#### Exit & Timing")
         
         col1, col2 = st.columns(2)
         
         with col1:
             exit_multiple = st.slider(
-                "Exit Multiple (EBIT)",
+                "Exit Multiple",
                 min_value=0.0,
                 max_value=40.0,
                 value=st.session_state.assumptions['base']['exit_multiple'],
