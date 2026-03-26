@@ -233,6 +233,11 @@ def main():
                     'financials': financials
                 }
                 
+                # Debug: Show what was stored
+                st.write("DEBUG - Profile keys:", list(profile.keys()) if profile else "None")
+                st.write("DEBUG - Financials keys:", list(financials.keys()) if financials else "None")
+                st.write("DEBUG - Ratios:", financials.get('ratios') if financials else "None")
+                
                 st.success(f"Data loaded for {profile.get('companyName', ticker_input)}")
         
         except FMPAPIError as e:
