@@ -404,15 +404,14 @@ def main():
             ebit_ttm = financials['EBIT'][0] if financials['EBIT'] else 0
             st.metric("EBIT (TTM)", f"${ebit_ttm/1e9:.1f}B")
         with col3:
-            # Calculate FCF from most recent year
+            # Calculate FCF
             if financials['Revenue'] and len(financials['Revenue']) > 0:
-                latest_revenue = financials['Revenue'][0]
                 latest_ebit = financials['EBIT'][0]
                 latest_capex = financials['CAPEX'][0]
                 latest_da = financials['Depreciation'][0]
                 tax_rate = financials['ratios']['tax_rate']
                 nopat = latest_ebit * (1 - tax_rate) if tax_rate else latest_ebit * 0.79
-                fcf_ttm = nopat + latest_da + latest_capex  # CAPEX already negative
+                fcf_ttm = nopat + latest_da + latest_capex
                 st.metric("FCF (TTM)", f"${fcf_ttm/1e9:.1f}B")
             else:
                 st.metric("FCF (TTM)", "N/A")
@@ -427,7 +426,6 @@ def main():
             revenue_cagr = financials['ratios'].get('revenue_cagr', 0)
             st.metric("Revenue CAGR (3Y)", f"{revenue_cagr*100:.1f}%")
         with col2:
-            # Most recent YoY growth
             if financials['Revenue'] and len(financials['Revenue']) >= 2:
                 yoy_growth = (financials['Revenue'][0] / financials['Revenue'][1] - 1)
                 st.metric("Most Recent YoY", f"{yoy_growth*100:.1f}%")
@@ -444,9 +442,8 @@ def main():
             ebit_margin = financials['ratios'].get('ebit_margin', 0)
             st.metric("EBIT Margin", f"{ebit_margin*100:.1f}%")
         with col2:
-            # FCF Margin
-            if financials['Revenue'] and 'fcf_ttm' in locals():
-                fcf_margin = fcf_ttm / latest_revenue
+            if 'fcf_ttm' in locals() and financials['Revenue']:
+                fcf_margin = fcf_ttm / financials['Revenue'][0]
                 st.metric("FCF Margin", f"{fcf_margin*100:.1f}%")
             else:
                 st.metric("FCF Margin", "N/A")
@@ -481,7 +478,7 @@ def main():
             st.metric("D&A % Revenue", f"{da_ratio*100:.1f}%")
     
     # Tab 2: Dashboard
-    with tabs[8]:
+    with tabs[1]:
         # Get current price from profile
         current_price = profile.get('price', 178.68)
         
@@ -540,8 +537,8 @@ def main():
             bull_delta = ((bull_value - current_price) / current_price) * 100 if bull_value > 0 else 0
             st.metric("Bull", f"${bull_value:.0f}/share", f"{bull_delta:+.1f}%")
     
-    # Tab 3: Financials
-    with tabs[8]:
+    # Tab 2: Financials
+    with tabs[2]:
         
         if financials is None:
             st.error("Financials data is None!")
@@ -566,8 +563,8 @@ def main():
             import traceback
             st.code(traceback.format_exc())
     
-    # Tab 4: Assumptions
-    with tabs[8]:
+    # Tab 3: Assumptions
+    with tabs[3]:
         # Assumptions Summary Table
         st.markdown("### Current Assumptions")
         
@@ -778,8 +775,8 @@ def main():
         
         st.markdown("---")
     
-    # Tab 5: Growth Paths
-    with tabs[8]:
+    # Tab 4: Growth Paths
+    with tabs[4]:
         # Get base assumptions
         base_assumptions = st.session_state.assumptions['base']
         
@@ -827,8 +824,8 @@ def main():
         st.caption("How base case assumptions transition from initial to terminal values over the projection period")
         st.dataframe(path_df, use_container_width=True, hide_index=True)
     
-    # Tab 6: Forecast
-    with tabs[8]:
+    # Tab 5: Forecast
+    with tabs[5]:
         st.subheader("Base Case Financial Projections")
         st.caption("Forecasted revenue, EBIT, and free cash flow over the projection period")
         
@@ -873,8 +870,8 @@ def main():
         else:
             st.warning("No forecast data available. DCF calculation may have failed.")
     
-    # Tab 7: Gordon Growth
-    with tabs[8]:
+    # Tab 6: Gordon Growth
+    with tabs[6]:
         st.subheader("Gordon Growth (Perpetuity) Method")
         st.caption("Terminal value calculated using perpetual growth formula")
         
@@ -1000,8 +997,8 @@ def main():
         else:
             st.warning("No Gordon Growth data available. DCF calculation may have failed.")
     
-    # Tab 8: Exit Multiple
-    with tabs[8]:
+    # Tab 7: Exit Multiple
+    with tabs[7]:
         st.subheader("Exit Multiple Method")
         st.caption("Terminal value calculated using exit EBIT multiple")
         
@@ -1122,7 +1119,7 @@ def main():
         else:
             st.warning("No Exit Multiple data available. DCF calculation may have failed.")
     
-    # Tab 9: Price Drivers
+    # Tab 8: Price Drivers
     with tabs[8]:
         st.subheader("What Does the Current Price Assume?")
         st.caption("Reverse DCF showing what would need to be true for today's price to make sense based on your inputs.")
