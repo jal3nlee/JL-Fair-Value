@@ -560,13 +560,13 @@ def main():
             
             with col1:
                 st.subheader("Historical Financials")
-                st.caption("Reported performance across revenue, profitability, and cash flow")
+                st.caption("Historical revenue, margins, and reinvestment trends")
                 hist_df = create_historical_summary(financials)
                 st.dataframe(hist_df, use_container_width=True, hide_index=True)
             
             with col2:
                 st.subheader("Historical Averages")
-                st.caption("Three-year average growth and margins to guide forward assumptions")
+                st.caption("Three-year averages used to inform model assumptions")
                 ratios_df = create_ratios_summary(financials['ratios'])
                 st.dataframe(ratios_df, use_container_width=True, hide_index=True)
         except Exception as e:
