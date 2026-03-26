@@ -151,11 +151,11 @@ def create_ratios_summary(ratios: dict) -> pd.DataFrame:
         DataFrame with formatted ratios
     """
     data = [
-        {'Metric': 'Revenue CAGR (3-yr)', 'Value': format_percentage(ratios['revenue_cagr'])},
-        {'Metric': 'EBIT Margin (3-yr avg)', 'Value': format_percentage(ratios['ebit_margin'])},
-        {'Metric': 'CAPEX % Revenue (3-yr avg)', 'Value': format_percentage(ratios['capex_ratio'])},
-        {'Metric': 'D&A % Revenue (3-yr avg)', 'Value': format_percentage(ratios['da_ratio'])},
-        {'Metric': 'Tax Rate (3-yr avg)', 'Value': format_percentage(ratios['tax_rate'])},
+        {'Metric': 'Revenue CAGR', 'Value': format_percentage(ratios['revenue_cagr'])},
+        {'Metric': 'EBIT Margin', 'Value': format_percentage(ratios['ebit_margin'])},
+        {'Metric': 'CAPEX % Revenue', 'Value': format_percentage(ratios['capex_ratio'])},
+        {'Metric': 'D&A % Revenue', 'Value': format_percentage(ratios['da_ratio'])},
+        {'Metric': 'Tax Rate', 'Value': format_percentage(ratios['tax_rate'])},
         {'Metric': 'Working Capital Ratio', 'Value': format_percentage(ratios['wc_ratio'])},
         {'Metric': 'Net Debt', 'Value': format_millions(ratios['net_debt'])},
         {'Metric': 'Shares (diluted)', 'Value': f"{ratios['shares_diluted'] / 1_000_000:,.0f}M" if ratios.get('shares_diluted') else "N/A"}
