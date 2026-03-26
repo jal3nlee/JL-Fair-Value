@@ -495,15 +495,8 @@ def main():
         
         st.markdown("---")
         
-        # Editable Base Assumptions - Header with button inline
-        col1, col2 = st.columns([3, 1])
-        with col1:
-            st.markdown("### Edit Base Case Assumptions")
-        with col2:
-            if st.button("Update Assumptions", type="primary", use_container_width=True, key="update_btn"):
-                st.session_state.valuation_ready = True
-                st.success("Assumptions updated!")
-        
+        # Editable Base Assumptions
+        st.markdown("### Edit Base Case Assumptions")
         st.caption("Adjust the sliders below. Bear and Bull scenarios use multipliers of Base values.")
         
         # Extract current values from session state
