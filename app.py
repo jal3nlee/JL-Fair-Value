@@ -354,32 +354,6 @@ def main():
     
     # Tab 1: Dashboard
     with tabs[0]:
-        # Assumptions Summary at top
-        if 'assumptions' in st.session_state:
-            st.markdown("### Current Assumptions")
-            
-            assumptions_data = []
-            base = st.session_state.assumptions['base']
-            bear = st.session_state.assumptions['bear']
-            bull = st.session_state.assumptions['bull']
-            
-            assumptions_data = [
-                {'Assumption': 'Revenue Growth', 'Bear': f"{bear['revenue_growth']*100:.1f}%", 'Base': f"{base['revenue_growth']*100:.1f}%", 'Bull': f"{bull['revenue_growth']*100:.1f}%"},
-                {'Assumption': 'Terminal Growth', 'Bear': f"{bear['terminal_growth']*100:.1f}%", 'Base': f"{base['terminal_growth']*100:.1f}%", 'Bull': f"{bull['terminal_growth']*100:.1f}%"},
-                {'Assumption': 'EBIT Margin (Init)', 'Bear': f"{bear['ebit_margin_initial']*100:.1f}%", 'Base': f"{base['ebit_margin_initial']*100:.1f}%", 'Bull': f"{bull['ebit_margin_initial']*100:.1f}%"},
-                {'Assumption': 'EBIT Margin (Term)', 'Bear': f"{bear['ebit_margin_terminal']*100:.1f}%", 'Base': f"{base['ebit_margin_terminal']*100:.1f}%", 'Bull': f"{bull['ebit_margin_terminal']*100:.1f}%"},
-                {'Assumption': 'CAPEX Initial', 'Bear': f"{bear['capex_initial']*100:.1f}%", 'Base': f"{base['capex_initial']*100:.1f}%", 'Bull': f"{bull['capex_initial']*100:.1f}%"},
-                {'Assumption': 'CAPEX Terminal', 'Bear': f"{bear['capex_terminal']*100:.1f}%", 'Base': f"{base['capex_terminal']*100:.1f}%", 'Bull': f"{bull['capex_terminal']*100:.1f}%"},
-                {'Assumption': 'Tax Rate', 'Bear': f"{bear['tax_rate']*100:.1f}%", 'Base': f"{base['tax_rate']*100:.1f}%", 'Bull': f"{bull['tax_rate']*100:.1f}%"},
-                {'Assumption': 'WACC', 'Bear': f"{bear['wacc']*100:.1f}%", 'Base': f"{base['wacc']*100:.1f}%", 'Bull': f"{bull['wacc']*100:.1f}%"},
-                {'Assumption': 'Exit Multiple', 'Bear': f"{bear['exit_multiple']:.1f}x", 'Base': f"{base['exit_multiple']:.1f}x", 'Bull': f"{bull['exit_multiple']:.1f}x"},
-            ]
-            
-            summary_df = pd.DataFrame(assumptions_data)
-            st.dataframe(summary_df, hide_index=True, use_container_width=True)
-            
-            st.markdown("---")
-        
         # Get current price from profile
         current_price = profile.get('price', 178.68)
         
