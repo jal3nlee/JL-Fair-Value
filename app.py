@@ -370,7 +370,7 @@ def main():
         "Forecast",
         "Gordon Growth",
         "Exit Multiple",
-        "Implied"
+        "Price Drivers"
     ])
     
     # Tab 1: Dashboard
@@ -1015,17 +1015,17 @@ def main():
         else:
             st.warning("No Exit Multiple data available. DCF calculation may have failed.")
     
-    # Tab 8: Implied
+    # Tab 8: Price Drivers
     with tabs[7]:
-        st.subheader("What Needs to Be True at Today's Price")
-        st.caption("Reverse DCF: What values would justify the current market price given your model assumptions?")
+        st.subheader("What Does the Current Price Assume?")
+        st.caption("Reverse DCF showing what would need to be true for today's price to make sense based on your inputs.")
         
         # Get current market price
         current_price = profile.get('price', 0)
         base_assumptions = st.session_state.assumptions['base']
         
         if current_price > 0:
-            st.markdown(f"**Current Price:** ${current_price:.2f}/share")
+            st.markdown(f"**Current Price:** ${current_price:.2f} per share")
             st.markdown("---")
             
             # Helper function to find implied value
@@ -1074,8 +1074,8 @@ def main():
                 
                 return mid_val
             
-            # BLOCK 1: Growth Required (holding valuation assumptions constant)
-            st.markdown("### Holding valuation assumptions constant")
+            # BLOCK 1: If valuation assumptions hold
+            st.markdown("### If valuation assumptions hold")
             
             with st.spinner("Calculating required revenue growth..."):
                 required_rev_growth = find_implied_value(
@@ -1088,26 +1088,17 @@ def main():
             
             if required_rev_growth is not None:
                 # Display required value prominently
-                st.metric("Required Revenue Growth", f"{required_rev_growth*100:.1f}%", 
+                st.metric("Revenue Growth Required", f"{required_rev_growth*100:.1f}%", 
                          label_visibility="visible")
                 
-                # Show key assumptions in table
-                st.caption("**Model assumptions used:**")
-                assumptions_data = [
-                    {'Assumption': 'Exit Multiple', 'Value': f"{base_assumptions['exit_multiple']:.1f}x"},
-                    {'Assumption': 'WACC', 'Value': f"{base_assumptions['wacc']*100:.1f}%"},
-                    {'Assumption': 'Terminal EBIT Margin', 'Value': f"{base_assumptions['ebit_margin_terminal']*100:.1f}%"},
-                    {'Assumption': 'Terminal Growth', 'Value': f"{base_assumptions['terminal_growth']*100:.1f}%"}
-                ]
-                assumptions_df = pd.DataFrame(assumptions_data)
-                st.dataframe(assumptions_df, use_container_width=True, hide_index=True)
+                st.caption("Based on your current assumptions for margins, reinvestment, discount rate, and exit multiple.")
             else:
                 st.warning("Unable to solve for required revenue growth within reasonable range.")
             
             st.markdown("---")
             
-            # BLOCK 2: Multiple Required (holding operating assumptions constant)
-            st.markdown("### Holding operating assumptions constant")
+            # BLOCK 2: If operating assumptions hold
+            st.markdown("### If operating assumptions hold")
             
             with st.spinner("Calculating required exit multiple..."):
                 required_exit_mult = find_implied_value(
@@ -1120,26 +1111,12 @@ def main():
             
             if required_exit_mult is not None:
                 # Display required value prominently
-                st.metric("Required Exit Multiple", f"{required_exit_mult:.1f}x",
+                st.metric("Exit Multiple Required", f"{required_exit_mult:.1f}x",
                          label_visibility="visible")
                 
-                # Show key assumptions in table
-                st.caption("**Model assumptions used:**")
-                assumptions_data = [
-                    {'Assumption': 'Revenue Growth', 'Value': f"{base_assumptions['revenue_growth']*100:.1f}%"},
-                    {'Assumption': 'WACC', 'Value': f"{base_assumptions['wacc']*100:.1f}%"},
-                    {'Assumption': 'Terminal EBIT Margin', 'Value': f"{base_assumptions['ebit_margin_terminal']*100:.1f}%"},
-                    {'Assumption': 'Terminal Growth', 'Value': f"{base_assumptions['terminal_growth']*100:.1f}%"}
-                ]
-                assumptions_df = pd.DataFrame(assumptions_data)
-                st.dataframe(assumptions_df, use_container_width=True, hide_index=True)
+                st.caption("Based on your current assumptions for growth, margins, reinvestment, and discount rate.")
             else:
                 st.warning("Unable to solve for required exit multiple within reasonable range.")
-            
-            st.markdown("---")
-            
-            # Clarifying footnote
-            st.caption("ℹ️ These values are solved independently and should not be interpreted as a single combined scenario. Results depend on the model's assumptions.")
         else:
             st.warning("No current price available to calculate required assumptions.")
 
