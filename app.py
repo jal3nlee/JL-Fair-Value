@@ -260,6 +260,40 @@ def main():
     # Render company header
     render_company_header(profile, financials)
     
+    # Initialize session state for assumptions BEFORE creating tabs
+    if 'assumptions' not in st.session_state:
+        ratios = financials['ratios']
+        default_capex = float(ratios['capex_ratio']) if ratios['capex_ratio'] else 0.15
+        default_exit = calculate_default_exit_multiple(
+            ratios['ebit_margin'],
+            ratios['revenue_cagr']
+        )
+        
+        st.session_state.assumptions = {
+            'base': {
+                'revenue_growth': float(ratios['revenue_cagr']) if ratios['revenue_cagr'] else 0.10,
+                'terminal_growth': 0.025,
+                'ebit_margin_initial': float(ratios['ebit_margin']) if ratios['ebit_margin'] else 0.40,
+                'ebit_margin_terminal': float(ratios['ebit_margin']) if ratios['ebit_margin'] else 0.40,
+                'capex_initial': default_capex,
+                'capex_terminal': max(0.10, default_capex - 0.03),
+                'da_ratio': float(ratios['da_ratio']) if ratios['da_ratio'] else 0.05,
+                'wc_ratio': float(ratios['wc_ratio']) if ratios['wc_ratio'] else 0.05,
+                'tax_rate': float(ratios['tax_rate']) if ratios['tax_rate'] else 0.21,
+                'wacc': 0.085,
+                'exit_multiple': default_exit,
+                'projection_years': 7
+            }
+        }
+        # Initialize Bear/Bull
+        st.session_state.assumptions['bear'] = {}
+        st.session_state.assumptions['bull'] = {}
+    
+    # ALWAYS update Bear and Bull based on current Base values (runs every time page renders)
+    base = st.session_state.assumptions['base']
+    st.session_state.assumptions['bear'] = {k: v * 0.6 if k not in ['projection_years', 'exit_multiple', 'tax_rate'] else v for k, v in base.items()}
+    st.session_state.assumptions['bull'] = {k: v * 1.3 if k not in ['projection_years', 'exit_multiple', 'tax_rate'] else v for k, v in base.items()}
+    
     # Create tabs
     tabs = st.tabs([
         "Dashboard",
@@ -373,35 +407,6 @@ def main():
     
     # Tab 3: Assumptions
     with tabs[2]:
-        # Initialize session state for assumptions if not exists
-        if 'assumptions' not in st.session_state:
-            ratios = financials['ratios']
-            default_capex = float(ratios['capex_ratio']) if ratios['capex_ratio'] else 0.15
-            default_exit = calculate_default_exit_multiple(
-                ratios['ebit_margin'],
-                ratios['revenue_cagr']
-            )
-            
-            st.session_state.assumptions = {
-                'base': {
-                    'revenue_growth': float(ratios['revenue_cagr']) if ratios['revenue_cagr'] else 0.10,
-                    'terminal_growth': 0.025,
-                    'ebit_margin_initial': float(ratios['ebit_margin']) if ratios['ebit_margin'] else 0.40,
-                    'ebit_margin_terminal': float(ratios['ebit_margin']) if ratios['ebit_margin'] else 0.40,
-                    'capex_initial': default_capex,
-                    'capex_terminal': max(0.10, default_capex - 0.03),
-                    'da_ratio': float(ratios['da_ratio']) if ratios['da_ratio'] else 0.05,
-                    'wc_ratio': float(ratios['wc_ratio']) if ratios['wc_ratio'] else 0.05,
-                    'tax_rate': float(ratios['tax_rate']) if ratios['tax_rate'] else 0.21,
-                    'wacc': 0.085,
-                    'exit_multiple': default_exit,
-                    'projection_years': 7
-                }
-            }
-            # Bear = Base * 0.6, Bull = Base * 1.3 (example multipliers)
-            st.session_state.assumptions['bear'] = {k: v * 0.6 if k not in ['projection_years', 'exit_multiple'] else v for k, v in st.session_state.assumptions['base'].items()}
-            st.session_state.assumptions['bull'] = {k: v * 1.3 if k not in ['projection_years', 'exit_multiple'] else v for k, v in st.session_state.assumptions['base'].items()}
-        
         # Assumptions Summary Table
         st.markdown("### Current Assumptions")
         
@@ -603,10 +608,6 @@ def main():
                 key="proj_years"
             )
             st.session_state.assumptions['base']['projection_years'] = projection_years
-        
-        # Update Bear and Bull based on Base changes
-        st.session_state.assumptions['bear'] = {k: v * 0.6 if k not in ['projection_years', 'exit_multiple', 'tax_rate'] else v for k, v in st.session_state.assumptions['base'].items()}
-        st.session_state.assumptions['bull'] = {k: v * 1.3 if k not in ['projection_years', 'exit_multiple', 'tax_rate'] else v for k, v in st.session_state.assumptions['base'].items()}
     
     # Tab 4: Growth Paths
     with tabs[3]:
