@@ -524,7 +524,7 @@ def main():
         st.markdown("---")
         
         # Blended Average
-        st.markdown("**Blended Average**")
+        st.markdown("**Blended**")
         col1, col2, col3 = st.columns(3)
         with col1:
             bear_value = dcf_results.get('bear', {}).get('price_per_share_avg', 0) if dcf_results.get('bear') else 0
