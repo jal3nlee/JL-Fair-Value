@@ -800,9 +800,54 @@ def main():
             
             st.markdown("---")
             
-            # Sensitivity Analysis Placeholder
+            # Sensitivity Analysis
             st.markdown("#### Sensitivity Analysis")
-            st.info("Sensitivity table showing value at different WACC and Terminal Growth combinations (coming soon)")
+            st.caption("Fair value at different WACC and Terminal Growth combinations (Base case)")
+            
+            # Define round number ranges
+            wacc_range = [0.06, 0.07, 0.085, 0.10, 0.12]  # 6%, 7%, 8.5%, 10%, 12%
+            term_growth_range = [0.015, 0.020, 0.025, 0.030, 0.035]  # 1.5%, 2%, 2.5%, 3%, 3.5%
+            
+            # Get base assumptions (for everything else)
+            base_assumptions = st.session_state.assumptions['base']
+            
+            # Build sensitivity table
+            sensitivity_data = []
+            for wacc in wacc_range:
+                row = {'WACC': f"{wacc*100:.1f}%"}
+                for tg in term_growth_range:
+                    # Create temp assumptions with varied WACC and terminal growth
+                    temp_assumptions = base_assumptions.copy()
+                    temp_assumptions['wacc'] = wacc
+                    temp_assumptions['terminal_growth'] = tg
+                    
+                    # Map to DCF format
+                    dcf_temp = {
+                        'revenue_growth': temp_assumptions['revenue_growth'],
+                        'ebit_margin': temp_assumptions['ebit_margin_initial'],
+                        'ebit_margin_terminal': temp_assumptions['ebit_margin_terminal'],
+                        'capex_ratio_initial': temp_assumptions['capex_initial'],
+                        'capex_ratio_terminal': temp_assumptions['capex_terminal'],
+                        'da_ratio': temp_assumptions['da_ratio'],
+                        'tax_rate': temp_assumptions['tax_rate'],
+                        'wc_ratio': temp_assumptions['wc_ratio'],
+                        'wacc': wacc,
+                        'terminal_growth': tg,
+                        'projection_years': temp_assumptions['projection_years'],
+                        'exit_multiple': temp_assumptions['exit_multiple']
+                    }
+                    
+                    try:
+                        result = dcf_model(financials, dcf_temp, 'sensitivity')
+                        price = result.get('price_per_share_gordon', 0)
+                        row[f"{tg*100:.1f}%"] = f"${price:.0f}"
+                    except:
+                        row[f"{tg*100:.1f}%"] = "N/A"
+                
+                sensitivity_data.append(row)
+            
+            sens_df = pd.DataFrame(sensitivity_data)
+            st.dataframe(sens_df, use_container_width=True, hide_index=True)
         else:
             st.warning("No Gordon Growth data available. DCF calculation may have failed.")
     
@@ -840,9 +885,54 @@ def main():
             
             st.markdown("---")
             
-            # Sensitivity Analysis Placeholder
+            # Sensitivity Analysis
             st.markdown("#### Sensitivity Analysis")
-            st.info("Sensitivity table showing value at different Exit Multiple and WACC combinations (coming soon)")
+            st.caption("Fair value at different WACC and Exit Multiple combinations (Base case)")
+            
+            # Define round number ranges
+            wacc_range = [0.06, 0.07, 0.085, 0.10, 0.12]  # 6%, 7%, 8.5%, 10%, 12%
+            exit_mult_range = [15, 20, 25, 30, 35]  # 15x, 20x, 25x, 30x, 35x
+            
+            # Get base assumptions (for everything else)
+            base_assumptions = st.session_state.assumptions['base']
+            
+            # Build sensitivity table
+            sensitivity_data = []
+            for wacc in wacc_range:
+                row = {'WACC': f"{wacc*100:.1f}%"}
+                for em in exit_mult_range:
+                    # Create temp assumptions with varied WACC and exit multiple
+                    temp_assumptions = base_assumptions.copy()
+                    temp_assumptions['wacc'] = wacc
+                    temp_assumptions['exit_multiple'] = em
+                    
+                    # Map to DCF format
+                    dcf_temp = {
+                        'revenue_growth': temp_assumptions['revenue_growth'],
+                        'ebit_margin': temp_assumptions['ebit_margin_initial'],
+                        'ebit_margin_terminal': temp_assumptions['ebit_margin_terminal'],
+                        'capex_ratio_initial': temp_assumptions['capex_initial'],
+                        'capex_ratio_terminal': temp_assumptions['capex_terminal'],
+                        'da_ratio': temp_assumptions['da_ratio'],
+                        'tax_rate': temp_assumptions['tax_rate'],
+                        'wc_ratio': temp_assumptions['wc_ratio'],
+                        'wacc': wacc,
+                        'terminal_growth': temp_assumptions['terminal_growth'],
+                        'projection_years': temp_assumptions['projection_years'],
+                        'exit_multiple': em
+                    }
+                    
+                    try:
+                        result = dcf_model(financials, dcf_temp, 'sensitivity')
+                        price = result.get('price_per_share_exit', 0)
+                        row[f"{em:.0f}x"] = f"${price:.0f}"
+                    except:
+                        row[f"{em:.0f}x"] = "N/A"
+                
+                sensitivity_data.append(row)
+            
+            sens_df = pd.DataFrame(sensitivity_data)
+            st.dataframe(sens_df, use_container_width=True, hide_index=True)
         else:
             st.warning("No Exit Multiple data available. DCF calculation may have failed.")
     
