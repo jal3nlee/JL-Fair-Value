@@ -548,12 +548,20 @@ def main():
                    f"{base_assumptions['ebit_margin_terminal']*100:.1f}% margin | "
                    f"{base_assumptions['wacc']*100:.1f}% WACC")
         
-        st.markdown("---")
-        
-        # Valuation Range
-        if bear_value > 0 and bull_value > 0:
-            st.markdown("#### Valuation Range")
-            st.markdown(f"**${bear_value:.0f}** – **${bull_value:.0f}**")
+        # Calculate terminal value percentage for Base case (blended)
+        base_result = dcf_results.get('base', {})
+        if base_result:
+            sum_pv_fcf = base_result.get('sum_pv_fcf', 0)
+            pv_tv_gordon = base_result.get('pv_terminal_gordon', 0)
+            pv_tv_exit = base_result.get('pv_terminal_exit', 0)
+            
+            # Average terminal value across both methods
+            pv_tv_avg = (pv_tv_gordon + pv_tv_exit) / 2
+            total_pv = sum_pv_fcf + pv_tv_avg
+            
+            if total_pv > 0:
+                terminal_pct = (pv_tv_avg / total_pv) * 100
+                st.markdown(f"~{terminal_pct:.0f}% of value from terminal assumptions")
     
     # Tab 3: Financials
     with tabs[2]:
