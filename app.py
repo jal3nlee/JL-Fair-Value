@@ -276,6 +276,9 @@ def main():
     with tabs[0]:
         # No title - just show the grid
         
+        # Get current price from profile
+        current_price = profile.get('price', 178.68)
+        
         # Row headers
         st.markdown("**Gordon Growth Method**")
         col1, col2, col3 = st.columns(3)
@@ -302,9 +305,7 @@ def main():
         st.markdown("**Blended Average**")
         col1, col2, col3 = st.columns(3)
         with col1:
-            # Calculate vs current price ($178.68)
             bear_value = 197
-            current_price = price if price > 0 else 178.68
             bear_delta = ((bear_value - current_price) / current_price) * 100
             st.metric("Bear", f"${bear_value}/share", f"{bear_delta:+.1f}%")
         with col2:
