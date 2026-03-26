@@ -262,29 +262,53 @@ def main():
     # Initialize assumptions ONLY ONCE (check if already exists)
     if 'assumptions' not in st.session_state:
         ratios = financials['ratios']
+        
+        # Calculate CURRENT EBIT margin from most recent financials (TTM/latest year)
+        current_ebit_margin = None
+        if financials['EBIT'] and financials['Revenue'] and len(financials['EBIT']) > 0:
+            latest_ebit = financials['EBIT'][0]  # Most recent year
+            latest_revenue = financials['Revenue'][0]
+            if latest_revenue and latest_revenue > 0:
+                current_ebit_margin = latest_ebit / latest_revenue
+        
+        # Fallback to historical average if current calculation fails
+        if current_ebit_margin is None or current_ebit_margin <= 0:
+            current_ebit_margin = float(ratios['ebit_margin']) if ratios['ebit_margin'] else 0.40
+        
         default_capex = float(ratios['capex_ratio']) if ratios['capex_ratio'] else 0.15
         default_exit = calculate_default_exit_multiple(
             ratios['ebit_margin'],
             ratios['revenue_cagr']
         )
         
-        
         st.session_state.assumptions = {
             'base': {
+                # GROWTH - Use historical CAGR
                 'revenue_growth': float(ratios['revenue_cagr']) if ratios['revenue_cagr'] else 0.10,
                 'terminal_growth': 0.025,
-                'ebit_margin_initial': float(ratios['ebit_margin']) if ratios['ebit_margin'] else 0.40,
-                'ebit_margin_terminal': float(ratios['ebit_margin']) if ratios['ebit_margin'] else 0.40,
+                
+                # MARGINS - Use CURRENT margin (real-time accuracy)
+                'ebit_margin_initial': current_ebit_margin,
+                'ebit_margin_terminal': current_ebit_margin,
+                
+                # REINVESTMENT - Use historical averages (stability)
                 'capex_initial': default_capex,
                 'capex_terminal': max(0.10, default_capex - 0.03),
                 'da_ratio': float(ratios['da_ratio']) if ratios['da_ratio'] else 0.05,
                 'wc_ratio': float(ratios['wc_ratio']) if ratios['wc_ratio'] else 0.05,
+                
+                # TAX & DISCOUNT - Use historical/defaults
                 'tax_rate': float(ratios['tax_rate']) if ratios['tax_rate'] else 0.21,
                 'wacc': 0.085,
+                
+                # EXIT & TIMING
                 'exit_multiple': default_exit,
                 'projection_years': 7
             }
         }
+        
+        # Track which assumptions have been manually edited by user
+        st.session_state.user_edited_assumptions = set()
     
     # ALWAYS update Bear and Bull based on current Base values (runs every time page renders)
     base = st.session_state.assumptions['base']
@@ -603,11 +627,47 @@ def main():
         
         st.markdown("---")
         
-        # Editable Base Assumptions - Header with button inline
-        col1, col2 = st.columns([3, 1])
+        # Editable Base Assumptions - Header with buttons inline
+        col1, col2, col3 = st.columns([2, 1, 1])
         with col1:
             st.markdown("### Edit Base Case Assumptions")
         with col2:
+            if st.button("Reset to Historical", use_container_width=True, key="reset_btn"):
+                # Recalculate current EBIT margin
+                current_ebit_margin = None
+                if financials['EBIT'] and financials['Revenue'] and len(financials['EBIT']) > 0:
+                    latest_ebit = financials['EBIT'][0]
+                    latest_revenue = financials['Revenue'][0]
+                    if latest_revenue and latest_revenue > 0:
+                        current_ebit_margin = latest_ebit / latest_revenue
+                
+                if current_ebit_margin is None or current_ebit_margin <= 0:
+                    current_ebit_margin = float(ratios['ebit_margin']) if ratios['ebit_margin'] else 0.40
+                
+                default_capex = float(ratios['capex_ratio']) if ratios['capex_ratio'] else 0.15
+                default_exit = calculate_default_exit_multiple(
+                    ratios['ebit_margin'],
+                    ratios['revenue_cagr']
+                )
+                
+                # Reset to historical defaults
+                st.session_state.assumptions['base'] = {
+                    'revenue_growth': float(ratios['revenue_cagr']) if ratios['revenue_cagr'] else 0.10,
+                    'terminal_growth': 0.025,
+                    'ebit_margin_initial': current_ebit_margin,
+                    'ebit_margin_terminal': current_ebit_margin,
+                    'capex_initial': default_capex,
+                    'capex_terminal': max(0.10, default_capex - 0.03),
+                    'da_ratio': float(ratios['da_ratio']) if ratios['da_ratio'] else 0.05,
+                    'wc_ratio': float(ratios['wc_ratio']) if ratios['wc_ratio'] else 0.05,
+                    'tax_rate': float(ratios['tax_rate']) if ratios['tax_rate'] else 0.21,
+                    'wacc': 0.085,
+                    'exit_multiple': default_exit,
+                    'projection_years': 7
+                }
+                st.session_state.user_edited_assumptions = set()
+                st.rerun()
+        with col3:
             if st.button("Update Assumptions", type="primary", use_container_width=True, key="update_btn"):
                 st.session_state.valuation_ready = True
         
