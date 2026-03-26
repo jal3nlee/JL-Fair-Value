@@ -1202,8 +1202,6 @@ def main():
                 st.metric("Required Revenue Growth", f"{required_rev_growth*100:.1f}%", 
                          label_visibility="visible")
                 
-                st.caption("Based on your current assumptions")
-                
                 # Show key assumptions in table
                 st.caption("**Assumptions held constant**")
                 assumptions_data = [
@@ -1235,8 +1233,6 @@ def main():
                 # Display required value prominently
                 st.metric("Required Exit Multiple", f"{required_exit_mult:.1f}x",
                          label_visibility="visible")
-                
-                st.caption("Based on your current assumptions")
                 
                 # Show key assumptions in table
                 st.caption("**Assumptions held constant**")
