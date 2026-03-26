@@ -65,21 +65,14 @@ def create_historical_summary(financials: dict) -> pd.DataFrame:
         DataFrame with formatted historical data
     """
     years = financials['years']
-    revenues = financials['Revenue']
     data = []
     
     for i, year in enumerate(years):
-        rev = revenues[i]
+        rev = financials['Revenue'][i]
         ebit = financials['EBIT'][i]
         capex = financials['CAPEX'][i]
         da = financials['Depreciation'][i]
         nwc = financials['NWC'][i]
-        
-        # Calculate year-over-year revenue growth
-        if i < len(years) - 1 and revenues[i] and revenues[i + 1]:
-            rev_growth = (revenues[i] - revenues[i + 1]) / revenues[i + 1]
-        else:
-            rev_growth = None
         
         ebit_pct = (ebit / rev) if (ebit and rev) else None
         capex_pct = (abs(capex) / rev) if (capex and rev) else None
@@ -89,11 +82,10 @@ def create_historical_summary(financials: dict) -> pd.DataFrame:
             data.append({
                 'Year': year,
                 'Revenue': format_millions(rev),
-                'Rev Growth': '—',
                 'EBIT': '—',
-                'EBIT %': '—',
+                'EBIT Margin': '—',
                 'CAPEX': '—',
-                'CAPEX %': '—',
+                'CAPEX % Revenue': '—',
                 'D&A': '—',
                 'NWC': format_millions(nwc)
             })
@@ -101,11 +93,10 @@ def create_historical_summary(financials: dict) -> pd.DataFrame:
             data.append({
                 'Year': year,
                 'Revenue': format_millions(rev),
-                'Rev Growth': format_percentage(rev_growth),
                 'EBIT': format_millions(ebit),
-                'EBIT %': format_percentage(ebit_pct),
-                'CAPEX': format_millions(capex),
-                'CAPEX %': format_percentage(capex_pct),
+                'EBIT Margin': format_percentage(ebit_pct),
+                'CAPEX': format_millions(abs(capex)) if capex else '—',  # Remove negative sign
+                'CAPEX % Revenue': format_percentage(capex_pct),
                 'D&A': format_millions(da),
                 'NWC': format_millions(nwc)
             })
@@ -150,15 +141,28 @@ def create_ratios_summary(ratios: dict) -> pd.DataFrame:
     Returns:
         DataFrame with formatted ratios
     """
+    # Handle Net Debt/Cash formatting
+    net_debt = ratios.get('net_debt', 0)
+    if net_debt < 0:
+        debt_label = 'Net Cash'
+        debt_value = format_millions(abs(net_debt))
+    else:
+        debt_label = 'Net Debt'
+        debt_value = format_millions(net_debt)
+    
+    # Format shares in billions
+    shares = ratios.get('shares_diluted', 0)
+    shares_value = f"{shares / 1_000_000_000:.1f}B" if shares else "N/A"
+    
     data = [
-        {'Metric': 'Revenue CAGR', 'Value': format_percentage(ratios['revenue_cagr'])},
+        {'Metric': 'Revenue Growth (3Y CAGR)', 'Value': format_percentage(ratios['revenue_cagr'])},
         {'Metric': 'EBIT Margin', 'Value': format_percentage(ratios['ebit_margin'])},
         {'Metric': 'CAPEX % Revenue', 'Value': format_percentage(ratios['capex_ratio'])},
         {'Metric': 'D&A % Revenue', 'Value': format_percentage(ratios['da_ratio'])},
         {'Metric': 'Tax Rate', 'Value': format_percentage(ratios['tax_rate'])},
-        {'Metric': 'Working Capital Ratio', 'Value': format_percentage(ratios['wc_ratio'])},
-        {'Metric': 'Net Debt', 'Value': format_millions(ratios['net_debt'])},
-        {'Metric': 'Shares (diluted)', 'Value': f"{ratios['shares_diluted'] / 1_000_000:,.0f}M" if ratios.get('shares_diluted') else "N/A"}
+        {'Metric': 'ΔWC % Revenue', 'Value': format_percentage(ratios['wc_ratio'])},
+        {'Metric': debt_label, 'Value': debt_value},
+        {'Metric': 'Shares Outstanding', 'Value': shares_value}
     ]
     
     return pd.DataFrame(data)
