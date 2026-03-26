@@ -197,12 +197,8 @@ def main():
     # Branding
     st.markdown('<div class="branding">JL Fair Value</div>', unsafe_allow_html=True)
     
-    # Ticker input (temporary - will move to proper search later)
-    col1, col2, col3 = st.columns([3, 1, 8])
-    with col1:
-        ticker_input = st.text_input("Enter Ticker", value="NVDA", label_visibility="collapsed", placeholder="Enter ticker or company...")
-    with col2:
-        fetch_button = st.button("Fetch Data", type="primary", use_container_width=True)
+    # Ticker input - auto-fetches when changed
+    ticker_input = st.text_input("Enter Ticker", value="NVDA", placeholder="Enter ticker symbol...")
     
     # Initialize session state
     if 'company_data' not in st.session_state:
@@ -211,9 +207,11 @@ def main():
         st.session_state.financials = None
     if 'profile' not in st.session_state:
         st.session_state.profile = None
+    if 'last_ticker' not in st.session_state:
+        st.session_state.last_ticker = None
     
-    # Fetch data
-    if fetch_button and ticker_input:
+    # Auto-fetch when ticker changes
+    if ticker_input and ticker_input.upper() != st.session_state.last_ticker:
         try:
             api_key = st.secrets["api_keys"]["fmp_api_key"]
             
@@ -232,9 +230,9 @@ def main():
                     'profile': profile,
                     'financials': financials
                 }
+                st.session_state.last_ticker = ticker_input.upper()
                 
                 st.success(f"Data loaded for {profile.get('companyName', ticker_input)}")
-                st.rerun()  # Force page reload with new data
         
         except FMPAPIError as e:
             st.error(f"API Error: {str(e)}")
