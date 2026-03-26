@@ -268,32 +268,32 @@ def main():
     # Render company header
     render_company_header(profile, financials)
     
-    
-    # ALWAYS initialize assumptions (don't rely on session state check)
-    ratios = financials['ratios']
-    default_capex = float(ratios['capex_ratio']) if ratios['capex_ratio'] else 0.15
-    default_exit = calculate_default_exit_multiple(
-        ratios['ebit_margin'],
-        ratios['revenue_cagr']
-    )
-    
-    
-    st.session_state.assumptions = {
-        'base': {
-            'revenue_growth': float(ratios['revenue_cagr']) if ratios['revenue_cagr'] else 0.10,
-            'terminal_growth': 0.025,
-            'ebit_margin_initial': float(ratios['ebit_margin']) if ratios['ebit_margin'] else 0.40,
-            'ebit_margin_terminal': float(ratios['ebit_margin']) if ratios['ebit_margin'] else 0.40,
-            'capex_initial': default_capex,
-            'capex_terminal': max(0.10, default_capex - 0.03),
-            'da_ratio': float(ratios['da_ratio']) if ratios['da_ratio'] else 0.05,
-            'wc_ratio': float(ratios['wc_ratio']) if ratios['wc_ratio'] else 0.05,
-            'tax_rate': float(ratios['tax_rate']) if ratios['tax_rate'] else 0.21,
-            'wacc': 0.085,
-            'exit_multiple': default_exit,
-            'projection_years': 7
+    # Initialize assumptions ONLY ONCE (check if already exists)
+    if 'assumptions' not in st.session_state:
+        ratios = financials['ratios']
+        default_capex = float(ratios['capex_ratio']) if ratios['capex_ratio'] else 0.15
+        default_exit = calculate_default_exit_multiple(
+            ratios['ebit_margin'],
+            ratios['revenue_cagr']
+        )
+        
+        
+        st.session_state.assumptions = {
+            'base': {
+                'revenue_growth': float(ratios['revenue_cagr']) if ratios['revenue_cagr'] else 0.10,
+                'terminal_growth': 0.025,
+                'ebit_margin_initial': float(ratios['ebit_margin']) if ratios['ebit_margin'] else 0.40,
+                'ebit_margin_terminal': float(ratios['ebit_margin']) if ratios['ebit_margin'] else 0.40,
+                'capex_initial': default_capex,
+                'capex_terminal': max(0.10, default_capex - 0.03),
+                'da_ratio': float(ratios['da_ratio']) if ratios['da_ratio'] else 0.05,
+                'wc_ratio': float(ratios['wc_ratio']) if ratios['wc_ratio'] else 0.05,
+                'tax_rate': float(ratios['tax_rate']) if ratios['tax_rate'] else 0.21,
+                'wacc': 0.085,
+                'exit_multiple': default_exit,
+                'projection_years': 7
+            }
         }
-    }
     
     # ALWAYS update Bear and Bull based on current Base values (runs every time page renders)
     base = st.session_state.assumptions['base']
