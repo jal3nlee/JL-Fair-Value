@@ -350,6 +350,13 @@ def main():
         try:
             result = dcf_model(financials, dcf_assumptions, scenario_name)
             st.session_state.dcf_results[scenario_name] = result
+            
+            # DEBUG: Show what we got
+            if result:
+                st.write(f"**DEBUG {scenario_name}:**")
+                st.write(f"- Gordon price: ${result.get('price_per_share_gordon', 0):.2f}")
+                st.write(f"- Exit price: ${result.get('price_per_share_exit', 0):.2f}")
+                st.write(f"- Blended price: ${result.get('price_per_share_avg', 0):.2f}")
         except Exception as e:
             error_msg = f"DCF {scenario_name}: {str(e)}"
             dcf_errors.append(error_msg)
