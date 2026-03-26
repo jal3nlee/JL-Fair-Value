@@ -348,6 +348,8 @@ def main():
     # Run DCF for all 3 scenarios (only when assumptions change)
     if 'dcf_results' not in st.session_state:
         st.session_state.dcf_results = {}
+    
+    if 'last_assumptions' not in st.session_state:
         st.session_state.last_assumptions = None
     
     # Check if assumptions have changed since last DCF run
