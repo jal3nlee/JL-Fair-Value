@@ -734,13 +734,55 @@ def main():
         
         path_df = pd.DataFrame(path_data)
         
-        st.subheader("Assumption Paths Over Projection Period")
-        st.caption("How key assumptions transition from initial to terminal values")
+        st.subheader("Base Case Assumption Paths")
+        st.caption("How base case assumptions transition from initial to terminal values over the projection period")
         st.dataframe(path_df, use_container_width=True, hide_index=True)
     
     # Tab 5: Forecast
     with tabs[4]:
-        st.markdown("*Projected revenue and free cash flow tables*")
+        st.subheader("Base Case Financial Projections")
+        st.caption("Forecasted revenue, EBIT, and free cash flow over the projection period")
+        
+        # Get base case DCF results
+        base_dcf = st.session_state.dcf_results.get('base')
+        
+        if base_dcf and base_dcf.get('projection'):
+            projection = base_dcf['projection']
+            
+            # Build forecast table
+            forecast_data = []
+            for p in projection:
+                forecast_data.append({
+                    'Year': int(p['Year']),
+                    'Revenue Growth': f"{p['Growth']*100:.1f}%",
+                    'Revenue': f"${p['Revenue']/1e9:.1f}B",
+                    'EBIT Margin': f"{p['EBIT_Margin']*100:.1f}%",
+                    'EBIT': f"${p['EBIT']/1e9:.1f}B",
+                    'NOPAT': f"${p['NOPAT']/1e9:.1f}B",
+                    'D&A': f"${p['D&A']/1e9:.1f}B",
+                    'CAPEX': f"${p['CAPEX']/1e9:.1f}B",
+                    'ΔWC': f"${p['ΔWC']/1e9:.1f}B",
+                    'FCF': f"${p['FCF']/1e9:.1f}B",
+                    'PV(FCF)': f"${p['PV']/1e9:.1f}B"
+                })
+            
+            forecast_df = pd.DataFrame(forecast_data)
+            st.dataframe(forecast_df, use_container_width=True, hide_index=True)
+            
+            # Summary metrics
+            st.markdown("---")
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                total_pv_fcf = base_dcf.get('sum_pv_fcf', 0)
+                st.metric("Sum of PV(FCF)", f"${total_pv_fcf/1e9:.1f}B")
+            with col2:
+                final_fcf = projection[-1]['FCF']
+                st.metric("Final Year FCF", f"${final_fcf/1e9:.1f}B")
+            with col3:
+                final_revenue = projection[-1]['Revenue']
+                st.metric("Final Year Revenue", f"${final_revenue/1e9:.1f}B")
+        else:
+            st.warning("No forecast data available. DCF calculation may have failed.")
     
     # Tab 6: Gordon Growth
     with tabs[5]:
