@@ -279,29 +279,43 @@ def main():
         # Get current price from profile
         current_price = profile.get('price', 178.68)
         
-        # Row headers
+        # Gordon Growth Method
         st.markdown("**Gordon Growth Method**")
         col1, col2, col3 = st.columns(3)
         with col1:
-            st.metric("Bear", "$128/share")
+            gordon_bear = 128
+            gordon_bear_delta = ((gordon_bear - current_price) / current_price) * 100
+            st.metric("Bear", f"${gordon_bear}/share", f"{gordon_bear_delta:+.1f}%")
         with col2:
-            st.metric("Base", "$271/share")
+            gordon_base = 271
+            gordon_base_delta = ((gordon_base - current_price) / current_price) * 100
+            st.metric("Base", f"${gordon_base}/share", f"{gordon_base_delta:+.1f}%")
         with col3:
-            st.metric("Bull", "$448/share")
+            gordon_bull = 448
+            gordon_bull_delta = ((gordon_bull - current_price) / current_price) * 100
+            st.metric("Bull", f"${gordon_bull}/share", f"{gordon_bull_delta:+.1f}%")
         
         st.markdown("---")
         
+        # Exit Multiple Method
         st.markdown("**Exit Multiple Method**")
         col1, col2, col3 = st.columns(3)
         with col1:
-            st.metric("Bear", "$267/share")
+            exit_bear = 267
+            exit_bear_delta = ((exit_bear - current_price) / current_price) * 100
+            st.metric("Bear", f"${exit_bear}/share", f"{exit_bear_delta:+.1f}%")
         with col2:
-            st.metric("Base", "$572/share")
+            exit_base = 572
+            exit_base_delta = ((exit_base - current_price) / current_price) * 100
+            st.metric("Base", f"${exit_base}/share", f"{exit_base_delta:+.1f}%")
         with col3:
-            st.metric("Bull", "$946/share")
+            exit_bull = 946
+            exit_bull_delta = ((exit_bull - current_price) / current_price) * 100
+            st.metric("Bull", f"${exit_bull}/share", f"{exit_bull_delta:+.1f}%")
         
         st.markdown("---")
         
+        # Blended Average
         st.markdown("**Blended Average**")
         col1, col2, col3 = st.columns(3)
         with col1:
