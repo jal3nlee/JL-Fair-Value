@@ -471,8 +471,16 @@ def main():
             ebit_margin = financials['ratios'].get('ebit_margin', 0)
             st.metric("EBIT Margin", f"{ebit_margin*100:.1f}%")
         with col2:
-            if 'fcf_ttm' in locals() and financials['Revenue']:
-                fcf_margin = fcf_ttm / financials['Revenue'][0]
+            # Calculate FCF margin from fcf_ttm calculated above
+            if financials['Revenue'] and len(financials['Revenue']) > 0:
+                latest_revenue = financials['Revenue'][0]
+                latest_ebit = financials['EBIT'][0]
+                latest_capex = financials['CAPEX'][0]
+                latest_da = financials['Depreciation'][0]
+                tax_rate = financials['ratios']['tax_rate']
+                nopat = latest_ebit * (1 - tax_rate) if tax_rate else latest_ebit * 0.79
+                fcf_for_margin = nopat + latest_da + latest_capex
+                fcf_margin = fcf_for_margin / latest_revenue
                 st.metric("FCF Margin", f"{fcf_margin*100:.1f}%")
             else:
                 st.metric("FCF Margin", "N/A")
@@ -1317,3 +1325,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    
